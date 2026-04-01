@@ -29,6 +29,6 @@ class TestHelloCog:
         interaction.response.send_message = AsyncMock()
         await cog.hello.callback(cog, interaction)
         interaction.response.send_message.assert_called_once_with(
-            "Hello, World! 🎲"
+            "Greetings, adventurer! 🎲⚔️"
         )
 

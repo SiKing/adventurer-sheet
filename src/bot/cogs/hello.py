@@ -14,7 +14,7 @@ class Hello(commands.Cog):
     @app_commands.command(name="hello", description="Say hello to the bot!")
     async def hello(self, interaction: discord.Interaction) -> None:
         """Respond with a friendly greeting."""
-        await interaction.response.send_message("Hello, World! 🎲")
+        await interaction.response.send_message("Greetings, adventurer! 🎲⚔️")
 
 
 async def setup(bot: commands.Bot) -> None:
