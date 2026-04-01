@@ -1,2 +1,2 @@
-worker: cd src && python -m bot
+worker: python -m bot
 
