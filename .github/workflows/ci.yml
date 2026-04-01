@@ -27,18 +27,7 @@ jobs:
       - name: Run tests with coverage
         run: pytest --cov --cov-report=term-missing
 
-  deploy:
-    needs: lint-and-test
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install Railway CLI
-        run: npm install -g @railway/cli
-
-      - name: Deploy to Railway
-        run: railway up --service adventurer-sheet
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+  # Deploy is handled by Railway's GitHub integration (auto-deploy on push).
+  # GitHub Actions serves as the quality gate: lint + test must pass.
+  # Railway auto-deploys from main independently.
 
