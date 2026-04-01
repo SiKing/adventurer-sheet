@@ -13,7 +13,7 @@ A D&D 5e character sheet Discord bot built with Python and discord.py.
 
 ```bash
 # Clone the repo
-git clone https://github.com/YOUR_USERNAME/adventurer-sheet.git
+git clone git@github.com:SiKing/adventurer-sheet.git
 cd adventurer-sheet
 
 # Install Python 3.12 and create venv
