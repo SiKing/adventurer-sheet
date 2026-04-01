@@ -9,7 +9,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy source code
 COPY src/ src/
 
-# Run from the src directory so "python -m bot" resolves correctly
-WORKDIR /app/src
+# Set PYTHONPATH so "python -m bot" finds the bot package in src/
+ENV PYTHONPATH=/app/src
 CMD ["python", "-m", "bot"]
 
