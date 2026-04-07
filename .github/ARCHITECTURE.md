@@ -84,3 +84,70 @@ regardless of how many changes are made on that branch.
 
 ---
 
+## ADR-009 — Dependency Review at Plan Completion
+
+**Date:** 2026-04-07
+
+### Rule
+
+When all steps of a Plan have been completed and tests are passing, **check for
+newer versions of every package in `requirements.txt` and `requirements-dev.txt`**
+before merging the branch. Update packages that have safe upgrades available;
+document any that are intentionally held back.
+
+### Rationale
+
+Feature branches take time. A package that was current at the start of a plan
+may have received bug fixes, security patches, or compatible minor releases by
+the time the branch is ready to merge. Reviewing at plan completion — rather than
+on an ad-hoc schedule — creates a consistent, low-effort cadence that keeps
+dependencies fresh without disrupting active development.
+
+The alternative (never reviewing until something breaks) leads to large, risky
+upgrade batches and missed security patches.
+
+### Process
+
+Run the following at the end of every plan:
+
+```bash
+pip list --outdated
+```
+
+For each outdated package, apply this decision table:
+
+| Package type | Condition | Action |
+|--------------|-----------|--------|
+| `requirements-dev.txt` (tool) | New version available | Upgrade and re-run lint + tests; update the pin |
+| `requirements.txt` (runtime, `~=` pin) | New patch/minor within the pinned range | `pip install --upgrade <pkg>` to verify; update pin range if needed |
+| `requirements.txt` (runtime) | New **major** version | Treat as a planned upgrade: read changelog, write a dedicated `fix/` or `feat/` branch |
+| Any package | Known breaking change or incompatibility | Hold back; add a comment in the requirements file explaining why |
+
+### Holdback comment format
+
+If a package is intentionally held back, document it inline:
+
+```
+# discord.py~=2.4  # held at 2.x — 3.0 has breaking slash-command API changes
+discord.py~=2.4
+```
+
+### What "safe upgrade" means
+
+- **`requirements-dev.txt`:** Any new version is worth testing. These packages
+  do not ship to production; the only risk is a lint rule change or a test
+  runner behavioural difference — both of which are caught immediately by CI.
+- **`requirements.txt`:** Patch and minor upgrades within the `~=` range are
+  safe by definition (semantic versioning). Major upgrades require a changelog
+  review and dedicated branch.
+
+### Example: Phase 2 lesson
+
+`ruff` was unpinned in `requirements-dev.txt`. CI installed a newer version that
+flagged an import-sorting error that the local version silently accepted. The fix
+was to pin `ruff==0.15.9`. A dependency review at Phase 2 completion would have
+caught this proactively — either by upgrading local ruff to match CI, or by
+pinning CI to match local, before the discrepancy caused a CI failure.
+
+---
+
