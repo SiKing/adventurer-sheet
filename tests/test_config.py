@@ -44,3 +44,22 @@ class TestLoadConfig:
         config = load_config()
         assert config["DISCORD_TOKEN"] == "my-token"
 
+    def test_load_config_returns_database_url(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Config returns DATABASE_URL in the config dict."""
+        monkeypatch.setenv("DISCORD_TOKEN", "test-token")
+        monkeypatch.setenv("DATABASE_URL", "sqlite+aiosqlite:///./test.db")
+        config = load_config()
+        assert config["DATABASE_URL"] == "sqlite+aiosqlite:///./test.db"
+
+    def test_load_config_database_url_has_default(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Config falls back to the default DATABASE_URL when env var is absent."""
+        monkeypatch.setenv("DISCORD_TOKEN", "test-token")
+        monkeypatch.delenv("DATABASE_URL", raising=False)
+        config = load_config()
+        assert "DATABASE_URL" in config
+        assert "sqlite+aiosqlite" in config["DATABASE_URL"]
+

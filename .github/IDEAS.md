@@ -46,6 +46,10 @@ Incorporate security: each end-user can see and modify only character sheets the
 Will create additional features to be determined at a later time. Some possibilities are:
 - Automatically update stats based on level progression.
 - Automatically update stats based on new skills, feats, etc.
-- Allow user to override any stat manually.
 - Retrieve descriptions of skills, feats, spells, etc. using REST calls to dnd5eapi.com
 - Create the ability to back up and restore the production database.
+- Switch the database to PostgreSQL (free on Railway) Railway provides a free managed PostgreSQL instance. This would require:
+  - Changing DATABASE_URL to a postgresql+asyncpg://... connection string
+  - Adding asyncpg to requirements.txt, removing aiosqlite
+  - No schema changes needed — SQLAlchemy handles both dialects identically
+  - Railway injects DATABASE_URL automatically when you provision a Postgres plugin
