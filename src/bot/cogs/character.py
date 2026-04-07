@@ -104,7 +104,8 @@ class CreateCharacterModal(discord.ui.Modal, title="Create a Character"):
 
         await interaction.response.send_message(
             f"✅ **{char.name}** has been created and set as your active character! "
-            "Level defaults to 1 and stats to 10 — use `/character edit` to update them.",
+            "Level defaults to 1 and stats to 10 — use "
+            "`/character edit` to update them.",
             ephemeral=True,
         )
         logger.info("Created character '%s' for owner %s", char.name, owner_id)
@@ -242,9 +243,9 @@ class CharacterCog(commands.Cog):
 
     @character_group.command(
         name="view",
-        description="Display your character sheet. Omit name to use your active character.",
+        description="Display your character sheet. Omit name to use your active.",
     )
-    @app_commands.describe(name="Character name (optional if you have an active character)")
+    @app_commands.describe(name="Character name (optional if you have an active)")
     async def character_view(
         self,
         interaction: discord.Interaction,

@@ -11,7 +11,6 @@ from bot.errors import (
 )
 from bot.repository import CharacterRepository
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -209,7 +208,9 @@ class TestUpdate:
     async def test_update_string_field(self, session_factory) -> None:
         repo = make_repo(session_factory)
         await _create_default(repo)
-        char = await repo.update("100000000000000001", "Thorin", "alignment", "Chaotic Good")
+        char = await repo.update(
+            "100000000000000001", "Thorin", "alignment", "Chaotic Good"
+        )
         assert char.alignment == "Chaotic Good"
 
     async def test_update_integer_field(self, session_factory) -> None:
@@ -240,7 +241,9 @@ class TestUpdate:
         repo = make_repo(session_factory)
         await _create_default(repo)
         with pytest.raises(InvalidFieldError):
-            await repo.update("100000000000000001", "Thorin", "created_at", "2020-01-01")
+            await repo.update(
+                "100000000000000001", "Thorin", "created_at", "2020-01-01"
+            )
 
     async def test_update_invalid_value_for_integer_field_raises(
         self, session_factory
@@ -248,7 +251,9 @@ class TestUpdate:
         repo = make_repo(session_factory)
         await _create_default(repo)
         with pytest.raises(InvalidValueError):
-            await repo.update("100000000000000001", "Thorin", "strength", "not_a_number")
+            await repo.update(
+                "100000000000000001", "Thorin", "strength", "not_a_number"
+            )
 
     async def test_update_level_below_minimum_raises(self, session_factory) -> None:
         repo = make_repo(session_factory)

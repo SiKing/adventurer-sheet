@@ -6,8 +6,8 @@ import importlib
 import logging
 
 import discord
-from sqlalchemy.ext.asyncio import create_async_engine
 from discord.ext import commands
+from sqlalchemy.ext.asyncio import create_async_engine
 
 from bot.config import load_config
 from bot.db import create_tables, get_session_factory
@@ -40,7 +40,8 @@ async def main() -> None:
     await create_tables(engine)
     session_factory = get_session_factory(engine)
 
-    # Optionally seed test data (local dev only — tests/seed.py is never in the Docker image)
+    # Optionally seed test data (local dev only)
+    # tests/seed.py is never copied into the Docker image
     if args.seed:
         try:
             seed_module = importlib.import_module("seed")

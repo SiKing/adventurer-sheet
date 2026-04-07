@@ -1,7 +1,7 @@
 """Tests for src/bot/cogs/character.py — CharacterCog with mocked repository."""
 
-from unittest.mock import AsyncMock, MagicMock, patch
 from datetime import datetime
+from unittest.mock import AsyncMock, MagicMock
 
 import discord
 import pytest
@@ -13,7 +13,6 @@ from bot.errors import (
     InvalidFieldError,
     InvalidValueError,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -397,7 +396,7 @@ class TestCharacterDelete:
         )
 
         interaction = _make_interaction(user_id)
-        # discord.py @ui.button wraps the method into a Button item; invoke via .callback
+        # @ui.button wraps the method into a Button item; invoke via .callback
         await view.confirm.callback(interaction)
 
         repo.delete.assert_awaited_once_with(user_id, "Thorin")
