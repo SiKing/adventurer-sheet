@@ -39,6 +39,8 @@ async def main() -> None:
     # Load cogs
     await bot.load_extension("bot.cogs.hello")
     logger.info("Loaded cog: hello")
+    await bot.load_extension("bot.cogs.about")
+    logger.info("Loaded cog: about")
 
     # Connect to Discord
     await bot.start(config["DISCORD_TOKEN"])
