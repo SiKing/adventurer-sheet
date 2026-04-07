@@ -9,9 +9,8 @@ import csv
 import logging
 from pathlib import Path
 
-from bot.repository import CharacterRepository
-
 from bot.errors import CharacterAlreadyExistsError
+from bot.repository import CharacterRepository
 
 logger = logging.getLogger(__name__)
 
