@@ -74,6 +74,4 @@ tests/            — Test suite
 
 ## License
 
-Private project.
-
-
+GNU General Public License v3.0 — see [LICENSE.txt](LICENSE.txt) for details.

@@ -442,6 +442,66 @@ git push
 
 ---
 
+---
+
+## Step 9: Branch Strategy & Version Tracking
+
+### 9.1 Branch protection
+
+The `main` branch is protected — direct pushes are blocked. All code changes must be made on a feature branch and merged via pull request.
+
+### 9.2 Feature branch naming
+
+Use the `feat/<short-description>` convention:
+
+```bash
+git checkout -b feat/my-feature
+```
+
+### 9.3 Version bump on every feature branch
+
+The `version` field in `pyproject.toml` tracks the project version using [semantic versioning](https://semver.org/) (`MAJOR.MINOR.PATCH`).
+
+**Rule:** Increment the **patch** version (`0.1.0` → `0.1.1`) each time you create a new feature branch. This keeps the version in sync with work in progress and makes it easy to trace deployed builds.
+
+```toml
+# pyproject.toml
+[project]
+version = "0.1.1"   # bump patch when starting a new feature branch
+```
+
+### 9.4 `/about` slash command
+
+A `/about` slash command was added to display bot information — including the current version — directly in Discord.
+
+**Implementation:** `src/bot/cogs/about.py`
+
+- Reads the version at runtime from `pyproject.toml` using Python's built-in `tomllib` (Python 3.11+)
+- Returns a Discord embed with the bot name, description, and version
+- Falls back to `"unknown"` if `pyproject.toml` cannot be read
+
+**Example output in Discord:**
+
+```
+Adventurer Sheet
+A D&D 5e character sheet bot for Discord.
+
+Version  0.1.1
+─────────────────
+Made with discord.py
+```
+
+**Why an embed:** Embeds provide structured, visually distinct output in Discord. The `/about` command is designed to grow — future phases can add more fields (author, supported commands, links) without changing the command signature.
+
+### ✅ Verification
+
+- [ ] Feature branch created before starting work
+- [ ] `pyproject.toml` version bumped on new branch
+- [ ] `/about` command appears in Discord autocomplete
+- [ ] `/about` responds with an embed showing the correct version
+
+---
+
 ## What's Next (Phase 2 Preview)
 
 Phase 2 will build on this foundation to add:
