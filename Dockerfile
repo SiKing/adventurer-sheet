@@ -6,6 +6,9 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Copy project metadata (read at runtime by /about command)
+COPY pyproject.toml .
+
 # Copy source code
 COPY src/ src/
 
