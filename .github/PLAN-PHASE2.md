@@ -13,11 +13,12 @@ and list their D&D 5e characters entirely through Discord slash commands. Data
 is stored in SQLite via SQLAlchemy ORM. Each character is owned by the Discord
 user who created it — no user can read or modify another user's sheets.
 
-**Design choice — simplified creation flow:** `/character create` collects only
-the 5 identity fields (name, class, level, race, background, alignment) via a
-single Discord Modal. All ability scores default to 10, AC to 10, speed to 30 ft,
-and HP to 1. Users update stats via `/character edit` after creation. This keeps
-the create flow minimal and reduces implementation complexity.
+**Design choice — simplified creation flow:** `/character create` collects 5
+identity fields (name, class, race, background, alignment) via a single Discord
+Modal. Level defaults to 1. All ability scores default to 10, AC to 10, speed
+to 30 ft, and HP to 1. Users update any of these via `/character edit` after
+creation. This keeps the create flow to a single modal within Discord's hard
+limit of 5 text inputs.
 
 ---
 
@@ -77,15 +78,17 @@ be split without changing any user-visible command names.
 
 ### ADR-005 — Discord UX: Single Modal for Character Creation
 
-**Decision:** `/character create` opens a single Discord Modal with 5 identity
-fields. All stat fields default to safe baseline values and are editable via
-`/character edit` after creation.
+**Decision:** `/character create` opens a single Discord Modal with **5 text
+inputs**: Name, Class, Race, Background, and Alignment. Level defaults to 1 and
+is set via `/character edit` immediately after creation.
 
-**Rationale:** Discord Modals support up to 5 text inputs. Collecting 15+ fields
-across 3 sequential modals is technically possible but creates confusing UX for
-new users. Starting with just the identity fields and sensible defaults is faster
-to create a character, easier to implement correctly, and simpler to test.
-Detailed stats can be filled in at the user's own pace with `/character edit`.
+**Rationale:** Discord's platform enforces a hard limit of **5 `TextInput`
+components per Modal**. Our 6 identity fields exceed this by one. Rather than
+split creation across two sequential modals (confusing UX) or force the user to
+type all fields as slash command options (poor autocomplete UX beyond ~5 options),
+we drop Level from the modal and default it to 1. Level is almost always the
+first thing a player edits after character creation, so this is a natural fit
+for `/character edit`.
 
 ---
 
@@ -105,6 +108,44 @@ be returned.
 
 ---
 
+### ADR-007 — Active Character: In-Memory Per-User Session State
+
+**Decision:** `CharacterCog` maintains a private dict `_active: dict[str, str]`
+mapping each Discord user ID to their currently active character name. This is
+Option A (in-memory, not persisted to the database).
+
+**Set by:** `/character create` (on successful submit) and `/character view`
+(on successful fetch) — both write `self._active[user_id] = character_name`.
+
+**Read by:** `_get_own_character(interaction, name)` — if `name` is `None`,
+look up `self._active.get(user_id)`. If no active character is set, reply
+ephemeral: *"No active character. Use `/character view <name>` or
+`/character create` to set one."*
+
+**Cleared by:** `/character delete` — after a confirmed delete, remove the
+entry from `_active` if the deleted character was the active one.
+
+**Commands where `name` is optional (defaults to active):**
+- `/character view [name]`
+- `/character edit [name] <field> <value>`
+
+**Commands where `name` is always required:**
+- `/character delete <name>` — required as a deliberate safety measure to
+  prevent accidental deletion of the active character.
+
+**Rationale for in-memory (Option A):**
+The active character is a convenience shortcut, not persistent user data. It is
+naturally session-scoped — losing it on bot restart is acceptable behaviour (the
+user simply views a character again to restore it). A database-backed approach
+would add a new table, repository methods, and tests for marginal UX gain in
+Phase 2. Option B can be revisited in Phase 3 if user feedback shows the reset
+on restart is disruptive.
+
+**Known limitation:** State resets on every bot restart or Railway redeploy.
+This is documented behaviour, not a bug.
+
+---
+
 ## Data Model
 
 ### New file: `src/bot/db.py`
@@ -120,33 +161,48 @@ Owns the SQLAlchemy engine setup, the `Character` ORM model, and the
 | `owner_id` | `String(32)` | Not null, indexed | Discord user ID (string to avoid integer overflow) |
 | `name` | `String(100)` | Not null | Character name |
 | `char_class` | `String(50)` | Not null | `class` is a Python keyword — column named `char_class` |
-| `level` | `Integer` | Not null, default 1 | 1–20 |
+| `level` | `Integer` | Not null, default 1 | Minimum 1; no upper limit enforced |
 | `race` | `String(50)` | Not null | |
 | `background` | `String(50)` | Not null | |
 | `alignment` | `String(20)` | Not null | |
-| `strength` | `Integer` | Not null, default 10 | 1–20 |
-| `dexterity` | `Integer` | Not null, default 10 | 1–20 |
-| `constitution` | `Integer` | Not null, default 10 | 1–20 |
-| `intelligence` | `Integer` | Not null, default 10 | 1–20 |
-| `wisdom` | `Integer` | Not null, default 10 | 1–20 |
-| `charisma` | `Integer` | Not null, default 10 | 1–20 |
+| `strength` | `Integer` | Not null, default 10 | Minimum 1; no upper limit enforced |
+| `dexterity` | `Integer` | Not null, default 10 | Minimum 1; no upper limit enforced |
+| `constitution` | `Integer` | Not null, default 10 | Minimum 1; no upper limit enforced |
+| `intelligence` | `Integer` | Not null, default 10 | Minimum 1; no upper limit enforced |
+| `wisdom` | `Integer` | Not null, default 10 | Minimum 1; no upper limit enforced |
+| `charisma` | `Integer` | Not null, default 10 | Minimum 1; no upper limit enforced |
 | `armor_class` | `Integer` | Not null, default 10 | |
 | `speed` | `Integer` | Not null, default 30 | In feet |
 | `max_hp` | `Integer` | Not null, default 1 | |
 | `current_hp` | `Integer` | Not null, default 1 | |
-| `created_at` | `DateTime` | Not null, server default `now()` | Audit timestamp |
+| `initiative` | `Integer` | Not null, default 0 | Stored; defaults to DEX modifier but player-overridable |
+| `proficiency_bonus` | `Integer` | Not null, default 2 | Stored; defaults to `2 + (level-1)//4` but player-overridable |
+| `passive_perception` | `Integer` | Not null, default 10 | Stored; defaults to `10 + WIS modifier` but player-overridable |
+| `experience_points` | `Integer` | Not null, default 0 | XP total; manually updated by player |
+| `created_at` | `DateTime` | Not null, server default `now()` | Set once at insert; never updated |
+| `updated_at` | `DateTime` | Not null, server default `now()`, onupdate `now()` | Updated automatically by SQLAlchemy on every `UPDATE`; never set by application code |
 
 **Unique constraint:** `(owner_id, name)` — one user cannot have two characters
 with the same name, making `/character view Thorin` unambiguous.
 
-**Derived values (computed in Python, never stored):**
+**Default value helpers (used only at creation time, never enforced by DB):**
 
-| Value | Formula |
-|-------|---------|
-| Ability modifier | `(score - 10) // 2` |
-| Initiative | DEX modifier |
-| Proficiency bonus | `2 + (level - 1) // 4` |
-| Passive Perception | `10 + WIS modifier` |
+These Python functions compute the initial default values when a character is
+first created. After creation the player can override any of these via
+`/character edit`, for example to account for magic items, feats, or class
+features that modify the value.
+
+| Field | Initial default formula |
+|-------|------------------------|
+| `initiative` | `(dexterity - 10) // 2` |
+| `proficiency_bonus` | `2 + (level - 1) // 4` |
+| `passive_perception` | `10 + (wisdom - 10) // 2` |
+
+> **Why stored, not computed?** A character with *Boots of Speed* or the
+> *Alert* feat may have an initiative that no longer matches the raw DEX
+> modifier. Storing the value and letting the player override it (Phase 2)
+> and eventually auto-update it from equipped items (Phase 3) is the correct
+> long-term model.
 
 ---
 
@@ -159,7 +215,7 @@ Custom exception classes:
 | `CharacterNotFoundError` | Character doesn't exist for this owner |
 | `CharacterAlreadyExistsError` | Duplicate `(owner_id, name)` |
 | `InvalidFieldError` | Unrecognised or read-only field name in `/character edit` |
-| `InvalidValueError` | Value fails validation (e.g. level > 20) |
+| `InvalidValueError` | Value fails validation (e.g. level is zero or negative, HP is zero) |
 
 ---
 
@@ -169,16 +225,15 @@ Custom exception classes:
 
 **Flow:**
 1. User types `/character create`.
-2. Bot opens a **Modal** with 6 text fields:
+2. Bot opens a **Modal** with 5 text inputs:
    - Character Name (required, max 100 chars)
    - Class (required, e.g. "Wizard", max 50 chars)
-   - Level (required, e.g. "5", max 2 chars)
    - Race (required, e.g. "High Elf", max 50 chars)
    - Background (required, e.g. "Sage", max 50 chars)
    - Alignment (required, e.g. "Neutral Good", max 20 chars)
-3. On submit: validate level (integer 1–20), insert the row with all stat
-   defaults, reply ephemeral:
-   *"✅ **Thorin** has been created! All stats default to 10 — use `/character edit` to update them."*
+3. On submit: insert the row with level defaulting to 1 and all stat defaults,
+   set this character as the active character for the user, reply ephemeral:
+   *"✅ **Thorin** has been created and set as your active character! Level defaults to 1 and stats to 10 — use `/character edit` to update them."*
 4. On duplicate name: reply ephemeral:
    *"⚠️ You already have a character named **Thorin**."*
 
@@ -187,10 +242,15 @@ Custom exception classes:
 ### `/character view [name]`
 
 **Flow:**
-- `name` is optional. If omitted and the user has exactly one character, show
-  it. If omitted with multiple, reply: *"You have multiple characters — use
-  `/character list` to see them, then `/character view <name>`."*
+- `name` is optional. If omitted, uses the active character (see ADR-007). If
+  no active character is set, replies: *"No active character. Use
+  `/character view <name>` or `/character create` to set one."*
+- If `name` is provided and the user has no character by that name, replies with
+  a not-found error. If omitted with multiple characters and no active set,
+  replies: *"You have multiple characters — use `/character list` to see them,
+  then `/character view <name>`."*
 - Fetches the character via `_get_own_character(interaction, name)`.
+- Sets this character as the active character for the user.
 - Replies with a rich `discord.Embed`.
 
 **Embed layout:**
@@ -207,30 +267,49 @@ Fields (inline, 3 per row):
 
   Initiative: +0  |  Proficiency: +2  |  Passive Perception: 10
 
-Footer:  Owned by @username · Created 2026-04-07
+Footer:  Owned by @username · Updated 2026-04-07
 ```
+
+> Ability score modifiers (e.g. `+0`, `-1`) are computed for display only
+> using `(score - 10) // 2`. Initiative, Proficiency Bonus, and Passive
+> Perception are read directly from their stored columns — they reflect
+> whatever the player has set, including magic item overrides.
 
 ---
 
-### `/character edit <name> <field> <value>`
+### `/character edit [name] <field> <value>`
 
 **Flow:**
-- `field` uses `app_commands.autocomplete` to suggest the 14 editable field
+- `name` is optional. If omitted, uses the active character (see ADR-007). If
+  no active character is set, replies: *"No active character. Use
+  `/character view <name>` to set one."*
+- `field` uses `app_commands.autocomplete` to suggest the editable field
   names (friendly strings: `strength`, `dexterity`, etc.).
 - `value` is a string; validated in Python before any DB write.
-- Fetches character, validates value, updates the field.
+- Fetches character via `_get_own_character(interaction, name)`, validates
+  value, updates the field.
 - Replies ephemeral: *"✅ **Thorin**'s strength updated to 18."*
 
-**Editable fields:** all columns except `id`, `owner_id`, `created_at`.
+**Editable fields:** all columns except `id`, `owner_id`, `created_at`, `updated_at`.
+
+> `updated_at` is never accepted as a `/character edit` field. It is set
+> automatically by SQLAlchemy's `onupdate=func.now()` on the `UPDATE` statement
+> that every `/character edit` call issues — the player cannot read or write it
+> directly.
 
 ---
 
 ### `/character delete <name>`
 
 **Flow:**
-- Fetches character via `_get_own_character` to confirm ownership.
+- `name` is **always required** — this is a deliberate safety measure to prevent
+  accidental deletion of the active character (see ADR-007).
+- Fetches character via `_get_own_character(interaction, name)` to confirm
+  ownership.
 - Replies with an ephemeral `discord.ui.View` containing two buttons:
-  - 🗑️ **Yes, delete** — deletes the row, edits the message to confirm.
+  - 🗑️ **Yes, delete** — deletes the row; if the deleted character was the
+    active character, clears `_active[user_id]`; edits the message to:
+    *"🗑️ **Thorin** has been deleted."*
   - ✖ **Cancel** — edits the message to *"✖ Deletion cancelled."*
 - Buttons time out after 60 seconds (treated as Cancel).
 
@@ -287,8 +366,11 @@ and can be raised and caught.
 **File:** `src/bot/db.py`
 
 - Define SQLAlchemy `Base` (declarative base).
-- Define `Character` model with all 19 columns and the `(owner_id, name)`
+- Define `Character` model with all 22 columns and the `(owner_id, name)`
   unique constraint.
+- `updated_at` must use `server_default=func.now(), onupdate=func.now()` so
+  SQLAlchemy sets it automatically on every `UPDATE` statement — no application
+  code ever writes to this column directly.
 - Define `get_session_factory(database_url: str) -> async_sessionmaker` which
   calls `create_async_engine` and returns an `async_sessionmaker`.
 - Define `create_tables(engine)` coroutine that runs `Base.metadata.create_all`
@@ -298,9 +380,79 @@ and can be raised and caught.
 - Model instantiation with all attributes.
 - `create_tables` creates the `characters` table.
 - Unique constraint raises `IntegrityError` on duplicate `(owner_id, name)`.
+- `experience_points` defaults to `0` on a new row.
+- `updated_at` changes after an `UPDATE`; `created_at` does not.
 
 **Risk:** Medium — first SQLAlchemy file; column type mistakes are easy. Validate
 with `get_errors` after writing.
+
+#### Test data seeding (local development only)
+
+**File:** `tests/seed.py`  *(not under `src/` — never copied into the Docker image)*
+
+**Why `tests/` not `src/`:** The `Dockerfile` only copies `src/` into the
+container. Placing `seed.py` under `tests/` guarantees it is physically absent
+from the production image — there is no runtime guard required.
+
+**Seed data source — CSV file:** `tests/seed_data.csv`
+
+The CSV file contains one row per character to seed. Columns map directly to the
+`characters` table. Any column omitted from the CSV falls back to the same
+default used by `/character create` (see Data Model). `owner_id` is a required
+column so that multiple owners can be represented — enabling testing of
+cross-user access scenarios (e.g. user A trying to view user B's character).
+
+**CSV format:**
+
+```csv
+owner_id,name,char_class,race,background,alignment,level,strength,dexterity,constitution,intelligence,wisdom,charisma,armor_class,speed,max_hp,current_hp,initiative,proficiency_bonus,passive_perception,experience_points
+111111111111111111,Thorin,Fighter,Dwarf,Soldier,Lawful Good,5,18,10,16,10,12,8,16,25,52,52,0,3,11,6500
+111111111111111111,Gandalf,Wizard,Human,Sage,Neutral Good,10,10,14,12,20,18,16,12,30,55,55,2,4,14,64000
+222222222222222222,Legolas,Ranger,Elf,Outlander,Chaotic Good,7,12,20,14,14,16,14,15,35,58,58,5,3,13,23000
+```
+
+> Multiple `owner_id` values intentionally included so tests can verify that
+> user `111111111111111111` cannot access characters owned by `222222222222222222`.
+
+**`seed.py` responsibilities:**
+
+- Read `tests/seed_data.csv` using Python's built-in `csv` module.
+- For each row, apply column defaults for any missing or empty fields.
+- Call `repository.create(...)` for each row.
+- Skip rows where the character already exists (catches `CharacterAlreadyExistsError`).
+- Log each inserted/skipped character at INFO level.
+
+**Activation — command-line flag:**
+
+```bash
+# Normal start (production and default local)
+cd src && python -m bot
+
+# Seed test data then start (local only)
+cd src && python -m bot --seed
+```
+
+`__main__.py` handles `--seed` as follows:
+1. Creates tables (as normal).
+2. Dynamically imports `seed` from `tests/seed.py` using `importlib` (so the
+   import only happens when the flag is present and fails gracefully if the
+   file is absent).
+3. Calls `await seed.seed_db(session_factory)`.
+4. Logs `"Seed data loaded."` at INFO level.
+5. Continues with normal bot startup.
+
+**Production safety:** `tests/seed.py` and `tests/seed_data.csv` are never
+copied into the Docker image (`Dockerfile` only copies `src/`). Even if
+`--seed` were somehow passed, the dynamic import would fail with a clear
+`ModuleNotFoundError` rather than silently succeeding.
+
+**Tests:** `tests/test_seed.py` (in-memory SQLite, reads from `tests/seed_data.csv`):
+- `seed_db` inserts one row per CSV row.
+- Running `seed_db` twice does not raise an error (idempotent).
+- Characters are owned by the `owner_id` values from the CSV.
+- Characters with missing optional columns use the expected defaults.
+
+**Risk:** Low — isolated entirely to `tests/`; zero production footprint.
 
 ---
 
@@ -312,7 +464,7 @@ with `get_errors` after writing.
 
 | Method | Signature | Raises |
 |--------|-----------|--------|
-| `create` | `(owner_id, name, char_class, level, race, background, alignment) -> Character` | `CharacterAlreadyExistsError` |
+| `create` | `(owner_id, name, char_class, level, race, background, alignment) -> Character` — computes and stores initial `initiative`, `proficiency_bonus`, `passive_perception` from level/ability score defaults | `CharacterAlreadyExistsError` |
 | `get_by_name` | `(owner_id, name) -> Character` | `CharacterNotFoundError` |
 | `list_by_owner` | `(owner_id) -> list[Character]` | — |
 | `update` | `(owner_id, name, field, value) -> Character` | `CharacterNotFoundError`, `InvalidFieldError`, `InvalidValueError` |
@@ -332,19 +484,21 @@ with `get_errors` after writing.
 
 Pure functions (no I/O, no Discord, no DB):
 
-| Function | Validates |
-|----------|-----------|
-| `validate_level(value: str) -> int` | Integer 1–20 |
-| `validate_ability_score(value: str) -> int` | Integer 1–20 |
+| Function | Purpose |
+|----------|---------|
+| `validate_level(value: str) -> int` | Integer ≥ 1; no upper limit |
+| `validate_ability_score(value: str) -> int` | Integer ≥ 1; no upper limit |
 | `validate_positive_int(field: str, value: str) -> int` | Positive integer > 0 |
 | `validate_field_name(name: str) -> str` | Must be in editable field set |
-| `ability_modifier(score: int) -> int` | `(score - 10) // 2` |
-| `proficiency_bonus(level: int) -> int` | `2 + (level - 1) // 4` |
+| `ability_modifier(score: int) -> int` | `(score - 10) // 2` — used to compute initial defaults at creation time only |
+| `proficiency_bonus(level: int) -> int` | `2 + (level - 1) // 4` — used to compute initial default at creation time only |
+| `default_passive_perception(wisdom: int) -> int` | `10 + ability_modifier(wisdom)` — used to compute initial default at creation time only |
 
 All raise the appropriate custom exception on invalid input.
 
 **Tests:** `tests/test_validators.py` — parametrised cases covering boundary
-values, empty strings, and non-numeric strings.
+values (minimum of 1, zero, negative numbers), empty strings, and non-numeric
+strings. No upper-bound tests for level or ability scores.
 
 **Risk:** Low — pure functions are trivial to test.
 
@@ -356,9 +510,10 @@ values, empty strings, and non-numeric strings.
 
 `build_character_embed(character: Character) -> discord.Embed`
 
-Reads all fields from the ORM object, computes derived values via
-`validators.py`, and constructs the embed described in the Command Design
-section above.
+Reads all fields directly from the stored `Character` ORM object — no derived
+values are computed here. Ability score modifiers (`(score - 10) // 2`) are
+computed only for display alongside each ability score in the embed; they are
+not stored and not required for any other logic.
 
 **Tests:** `tests/test_embeds.py` — construct a `Character` with known values,
 assert title, description, and specific field values in the returned embed.
@@ -374,17 +529,28 @@ assert title, description, and specific field values in the returned embed.
 Contents:
 - `character_group = app_commands.Group(name="character", description="…")`
 - `CharacterCog(commands.Cog)` with `CharacterRepository` injected via
-  `__init__`.
-- `_get_own_character(interaction, name)` private helper.
+  `__init__`, and `_active: dict[str, str]` initialised as an empty dict.
+- `_get_own_character(interaction, name)` private helper — resolves `name`
+  from `_active` when `None`, raises `CharacterNotFoundError` if unresolvable.
+- `_set_active(user_id, name)` and `_clear_active(user_id)` private helpers.
 - Five command methods decorated with `@character_group.command(…)`.
-- `CreateCharacterModal(discord.ui.Modal)` — 6 text inputs, `on_submit` handles
-  validation and calls `repository.create`.
+- `CreateCharacterModal(discord.ui.Modal)` — 5 text inputs (Name, Class, Race,
+  Background, Alignment), `on_submit` handles validation, calls
+  `repository.create`, and sets the active character.
 - `ConfirmDeleteView(discord.ui.View)` — two buttons, calls `repository.delete`
-  on confirm.
+  on confirm and clears active if the deleted character was active.
 
 **Tests:** `tests/test_character_cog.py` — mock `CharacterRepository` with
 `AsyncMock`. Test each command's happy path and all error paths (not found,
-already exists, invalid field/value). Do not interact with the real Discord API.
+already exists, invalid field/value). Active character test cases:
+- `/character create` sets active character on success.
+- `/character view <name>` sets active character on success.
+- `/character view` with no name uses active character.
+- `/character view` with no name and no active set returns the helpful prompt.
+- `/character edit` with no name uses active character.
+- `/character edit` with no name and no active set returns the helpful prompt.
+- `/character delete` after confirm clears active if the deleted character was active.
+Do not interact with the real Discord API.
 
 **Risk:** High — most complex file. Write test skeletons first (TDD), then
 implement.
@@ -453,6 +619,7 @@ immediately visible in Railway logs.
 | `tests/conftest.py` | Shared fixtures | Yes (in-memory) |
 | `tests/test_errors.py` | Unit | No |
 | `tests/test_db.py` | Integration | Yes |
+| `tests/test_seed.py` | Integration | Yes (in-memory, reads `seed_data.csv`) |
 | `tests/test_repository.py` | Integration | Yes |
 | `tests/test_validators.py` | Unit | No |
 | `tests/test_embeds.py` | Unit | No |
@@ -482,6 +649,7 @@ cog is the most complex file — aim for 90%+ there by testing all branches.
 | Table creation | Handled automatically at bot startup via `create_tables` — no migration tool needed for Phase 2 |
 | Log the DB path | Add `logger.info("Database: %s", config["DATABASE_URL"])` in `__main__.py` |
 | Characters lost after redeploy | Root cause: Volume not attached. Fix: attach volume in Railway dashboard |
+| `--seed` flag in production | Not possible — `tests/seed.py` and `tests/seed_data.csv` are never copied into the Docker image; dynamic import fails with `ModuleNotFoundError` |
 
 ---
 
@@ -495,6 +663,8 @@ cog is the most complex file — aim for 90%+ there by testing all branches.
 | R4 | `/character` command group not synced after first deploy | Low | High | `bot.tree.sync()` already called in `on_ready`; confirm in logs |
 | R5 | 80% coverage threshold not met for cog | Medium | Low | Write test skeletons before implementing cog (TDD) |
 | R6 | `create_all` at startup alters existing prod schema | Low | High | `create_all` only adds missing tables; never drops or alters columns |
+| R7 | Active character stale after delete — next command gets `CharacterNotFoundError` | Low | Low | `_clear_active` is called immediately after confirmed delete |
+| R8 | Active character reset on bot restart confuses users | Low | Low | Documented as known limitation in ADR-007; users re-activate with `/character view` |
 
 ---
 
@@ -504,10 +674,12 @@ Phase 2 is complete when **all** of the following are true:
 
 - [ ] `pytest --cov` passes with ≥ 80% coverage across `src/bot/`
 - [ ] `ruff check src/ tests/` returns no errors
-- [ ] `/character create` opens a modal, saves a character, and replies with confirmation — verified in Discord
-- [ ] `/character view <name>` displays a correctly formatted embed with derived values
+- [ ] `/character create` opens a modal, saves a character, sets it as active, and replies with confirmation — verified in Discord
+- [ ] `/character view <name>` displays a correctly formatted embed and sets the character as active
+- [ ] `/character view` with no name uses the active character
+- [ ] `/character edit` with no name uses the active character
 - [ ] `/character edit <name> strength 18` updates the field; next `/character view` reflects it
-- [ ] `/character delete <name>` prompts for confirmation and removes the row
+- [ ] `/character delete <name>` requires name explicitly, prompts for confirmation, removes the row, and clears active if applicable
 - [ ] `/character list` returns only the requesting user's characters
 - [ ] A user cannot view or edit another user's character (tested manually with two Discord accounts)
 - [ ] Railway redeploy preserves all characters (Volume confirmed working)

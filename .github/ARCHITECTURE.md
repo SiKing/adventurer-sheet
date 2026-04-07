@@ -46,3 +46,41 @@ container at the same relative path that the code expects.
 
 ---
 
+## ADR-008 — Git Workflow Rules
+
+**Date:** 2026-04-07
+
+### Rules
+
+1. **One git operation at a time.** Never chain git commands with `&&` or `;`.
+   Each operation (create branch, stage files, commit, push) is executed
+   separately so the developer retains full control over what runs and when.
+
+2. **Bump the patch version on every new feature branch.** When creating a new
+   branch, increment the patch version in `pyproject.toml`
+   (`MAJOR.MINOR.PATCH`) and include it in the first commit on that branch.
+   This keeps the deployed version traceable to the branch that produced it.
+
+### Branch naming conventions
+
+| Prefix | Purpose | Example |
+|--------|---------|---------|
+| `feat/` | New feature | `feat/character-sheet` |
+| `fix/` | Bug fix | `fix/about-command-production` |
+| `docs/` | Documentation only | `docs/phase2-plan` |
+| `ci/` | CI/CD changes | `ci/run-on-all-branches` |
+| `refactor/` | Code restructure, no behaviour change | `refactor/extract-validators` |
+
+### Version bump rule
+
+```toml
+# pyproject.toml — bump patch when creating a new branch
+[project]
+version = "0.1.2"   # was 0.1.1 on main
+```
+
+The patch version is incremented once per branch, in the first commit,
+regardless of how many changes are made on that branch.
+
+---
+
