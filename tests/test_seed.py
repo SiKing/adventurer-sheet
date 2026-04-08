@@ -1,5 +1,6 @@
 """Integration tests for tests/seed.py."""
 
+import csv
 import sys
 from pathlib import Path
 
@@ -12,16 +13,23 @@ sys.path.insert(0, str(Path(__file__).parent))
 import seed as seed_module  # noqa: E402
 
 
+def _count_csv_rows() -> int:
+    """Return the number of data rows in the active seed CSV file."""
+    with seed_module._CSV_PATH.open(newline="", encoding="utf-8") as f:
+        return sum(1 for _ in csv.DictReader(f))
+
+
 class TestSeedDb:
     async def test_inserts_all_csv_rows(self, session_factory) -> None:
         """seed_db must insert one character per row in seed_data.csv."""
+        expected = _count_csv_rows()
         await seed_module.seed_db(session_factory)
 
         async with session_factory() as session:
             result = await session.execute(select(Character))
             characters = result.scalars().all()
 
-        assert len(characters) == 3  # matches seed_data.csv row count
+        assert len(characters) == expected
 
     async def test_characters_have_correct_owner_ids(
         self, session_factory
@@ -39,6 +47,7 @@ class TestSeedDb:
 
     async def test_idempotent_second_call(self, session_factory) -> None:
         """Running seed_db twice must not raise and must not duplicate rows."""
+        expected = _count_csv_rows()
         await seed_module.seed_db(session_factory)
         await seed_module.seed_db(session_factory)  # must not raise
 
@@ -46,7 +55,7 @@ class TestSeedDb:
             result = await session.execute(select(Character))
             characters = result.scalars().all()
 
-        assert len(characters) == 3  # still only 3, no duplicates
+        assert len(characters) == expected  # no duplicates
 
     async def test_missing_optional_columns_use_defaults(
         self, session_factory, tmp_path, monkeypatch
