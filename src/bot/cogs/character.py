@@ -21,15 +21,6 @@ from bot.validators import EDITABLE_FIELDS
 
 logger = logging.getLogger(__name__)
 
-# ---------------------------------------------------------------------------
-# Command group
-# ---------------------------------------------------------------------------
-
-character_group = app_commands.Group(
-    name="character",
-    description="Manage your D&D 5e character sheets.",
-)
-
 
 # ---------------------------------------------------------------------------
 # Modal — /character create
@@ -176,6 +167,12 @@ class ConfirmDeleteView(discord.ui.View):
 
 class CharacterCog(commands.Cog):
     """Cog providing all /character sub-commands."""
+
+    # Class-level group — discord.py binds `self` on sub-commands automatically.
+    character_group = app_commands.Group(
+        name="character",
+        description="Manage your D&D 5e character sheets.",
+    )
 
     def __init__(self, bot: commands.Bot, repo: CharacterRepository) -> None:
         self._bot = bot
@@ -397,6 +394,5 @@ async def setup(bot: commands.Bot) -> None:
     # The session_factory is injected by __main__.py before load_extension.
     repo: CharacterRepository = bot.__dict__["_character_repo"]
     cog = CharacterCog(bot, repo)
-    bot.tree.add_command(character_group)
     await bot.add_cog(cog)
 
