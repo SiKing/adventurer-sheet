@@ -30,6 +30,19 @@ cp .env.example .env
 # Edit .env and paste your DISCORD_TOKEN
 ```
 
+### Lint
+
+```bash
+ruff check src/ tests/
+```
+
+### Run Tests
+
+```bash
+pytest
+pytest --cov  # with coverage
+```
+
 ### Run Locally
 
 ```bash
@@ -39,18 +52,15 @@ python -m bot
 
 The bot will connect to Discord. Try `/about` to verify it's working.
 
-### Run Tests
+To start with sample characters pre-loaded (local dev only):
 
 ```bash
-pytest
-pytest --cov  # with coverage
+python -m bot --seed
 ```
 
-### Lint
-
-```bash
-ruff check src/ tests/
-```
+`--seed` reads `tests/seed_data.csv` and inserts the rows before the bot connects.
+It is idempotent — running it again will not create duplicates. The seed files are
+never copied into the Docker image, so this flag has no effect in production.
 
 ## Project Structure
 
