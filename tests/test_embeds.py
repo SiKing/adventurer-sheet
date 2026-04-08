@@ -66,7 +66,7 @@ class TestBuildCharacterEmbed:
     def test_description_contains_level(self) -> None:
         char = _make_character(level=5)
         embed = build_character_embed(char)
-        assert "Level 5" in embed.description
+        assert "(5)" in embed.description
 
     def test_description_contains_background(self) -> None:
         char = _make_character(background="Soldier")

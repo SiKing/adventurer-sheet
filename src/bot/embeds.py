@@ -27,7 +27,7 @@ def build_character_embed(character: Character) -> discord.Embed:
     title = f"⚔️ {character.name}"
     description = (
         f"{character.race} {character.char_class} "
-        f"(Level {character.level}) · "
+        f"({character.level}) · "
         f"{character.background} · "
         f"{character.alignment}"
     )
