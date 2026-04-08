@@ -37,7 +37,7 @@ cd src
 python -m bot
 ```
 
-The bot will connect to Discord and respond to `/hello`.
+The bot will connect to Discord. Try `/about` to verify it's working.
 
 ### Run Tests
 

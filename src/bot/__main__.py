@@ -148,8 +148,6 @@ async def main() -> None:  # pragma: no cover
             logger.info("Global sync complete. Bot is ready.")
 
     # Load cogs
-    await bot.load_extension("bot.cogs.hello")
-    logger.info("Loaded cog: hello")
     await bot.load_extension("bot.cogs.about")
     logger.info("Loaded cog: about")
     await bot.load_extension("bot.cogs.character")
