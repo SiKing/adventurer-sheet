@@ -373,7 +373,7 @@ class CharacterCog(commands.Cog):
             return
 
         lines = [
-            f"• **{c.name}** — {c.race} {c.char_class} Lv.{c.level}"
+            f"• **{c.name}** — {c.race} {c.char_class} ({c.level})"
             for c in characters
         ]
         embed = discord.Embed(
