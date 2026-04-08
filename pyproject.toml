@@ -1,6 +1,6 @@
 [project]
 name = "adventurer-sheet"
-version = "0.1.1"
+version = "0.1.2"
 description = "A D&D 5e character sheet Discord bot"
 requires-python = ">=3.12"
 
@@ -19,7 +19,6 @@ asyncio_mode = "auto"
 
 [tool.coverage.run]
 source = ["src/bot"]
-omit = ["src/bot/__main__.py"]
 
 [tool.coverage.report]
 show_missing = true

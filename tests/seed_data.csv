@@ -1,0 +1,5 @@
+owner_id,name,char_class,race,background,alignment,level,strength,dexterity,constitution,intelligence,wisdom,charisma,armor_class,speed,max_hp,current_hp,initiative,proficiency_bonus,passive_perception,experience_points
+111111111111111111,Thorin,Fighter,Dwarf,Soldier,Lawful Good,5,18,10,16,10,12,8,16,25,52,52,0,3,11,6500
+111111111111111111,Gandalf,Wizard,Human,Sage,Neutral Good,10,10,14,12,20,18,16,12,30,55,55,2,4,14,64000
+222222222222222222,Legolas,Ranger,Elf,Outlander,Chaotic Good,7,12,20,14,14,16,14,15,35,58,58,5,3,13,23000
+872955518946263100,Some Dude,Thief,Gnome,Guy,Chaotic Nuts,,,,,,,,,,,,,,,

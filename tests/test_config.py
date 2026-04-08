@@ -44,3 +44,42 @@ class TestLoadConfig:
         config = load_config()
         assert config["DISCORD_TOKEN"] == "my-token"
 
+    def test_load_config_returns_database_url(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Config returns DATABASE_URL in the config dict."""
+        monkeypatch.setenv("DISCORD_TOKEN", "test-token")
+        monkeypatch.setenv("DATABASE_URL", "sqlite+aiosqlite:///./test.db")
+        config = load_config()
+        assert config["DATABASE_URL"] == "sqlite+aiosqlite:///./test.db"
+
+    def test_load_config_database_url_has_default(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Config falls back to the default DATABASE_URL when env var is absent."""
+        monkeypatch.setenv("DISCORD_TOKEN", "test-token")
+        monkeypatch.delenv("DATABASE_URL", raising=False)
+        config = load_config()
+        assert "DATABASE_URL" in config
+        assert "sqlite+aiosqlite" in config["DATABASE_URL"]
+
+    def test_load_config_returns_dev_guild_id_when_set(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Config returns DEV_GUILD_ID when the env var is set."""
+        monkeypatch.setenv("DISCORD_TOKEN", "test-token")
+        monkeypatch.setenv("DEV_GUILD_ID", "123456789012345678")
+        config = load_config()
+        assert config["DEV_GUILD_ID"] == "123456789012345678"
+
+    def test_load_config_dev_guild_id_empty_when_absent(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Config returns an empty string for DEV_GUILD_ID when env var is absent."""
+        monkeypatch.setenv("DISCORD_TOKEN", "test-token")
+        monkeypatch.delenv("DEV_GUILD_ID", raising=False)
+        # Prevent load_dotenv from re-reading the real .env, which may set DEV_GUILD_ID.
+        monkeypatch.setattr("bot.config.load_dotenv", lambda *a, **kw: None)
+        config = load_config()
+        assert config["DEV_GUILD_ID"] == ""
+

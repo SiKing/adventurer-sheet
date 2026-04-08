@@ -29,6 +29,16 @@ def load_config() -> dict[str, str]:
             "Copy .env.example to .env and add your bot token."
         )
 
+    database_url = os.environ.get(
+        "DATABASE_URL", "sqlite+aiosqlite:///./characters.db"
+    ).strip()
+
+    dev_guild_id = os.environ.get("DEV_GUILD_ID", "").strip()
+
     logger.info("Configuration loaded successfully.")
-    return {"DISCORD_TOKEN": token}
+    return {
+        "DISCORD_TOKEN": token,
+        "DATABASE_URL": database_url,
+        "DEV_GUILD_ID": dev_guild_id,
+    }
 
