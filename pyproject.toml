@@ -19,7 +19,6 @@ asyncio_mode = "auto"
 
 [tool.coverage.run]
 source = ["src/bot"]
-omit = ["src/bot/__main__.py"]
 
 [tool.coverage.report]
 show_missing = true

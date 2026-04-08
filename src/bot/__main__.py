@@ -22,7 +22,53 @@ logging.basicConfig(
 logger = logging.getLogger("bot")
 
 
-async def main() -> None:
+# ---------------------------------------------------------------------------
+# Pure helpers — extracted for testability
+# ---------------------------------------------------------------------------
+
+
+def resolve_dev_guild_id(raw: str | None) -> int | None:
+    """Parse *raw* into an integer guild ID, or return None.
+
+    Logs a warning and returns None if *raw* is not a valid integer.
+    Returns None immediately when *raw* is falsy (None or empty string).
+    """
+    if not raw:
+        return None
+    try:
+        return int(raw)
+    except ValueError:
+        logger.warning(
+            "Invalid DEV_GUILD_ID %r — must be an integer. "
+            "Falling back to global sync.",
+            raw,
+        )
+        return None
+
+
+def resolve_seed_path(anchor: Path) -> Path:
+    """Return the absolute path to tests/seed.py given an *anchor* file path.
+
+    *anchor* should be ``Path(__file__)`` from the caller.
+    The seed file lives three levels above ``src/bot/__main__.py``:
+    ``<project_root>/tests/seed.py``.
+    """
+    return anchor.resolve().parent.parent.parent / "tests" / "seed.py"
+
+
+def build_intents() -> discord.Intents:
+    """Return the Discord gateway intents required by this bot."""
+    intents = discord.Intents.default()
+    intents.message_content = True
+    return intents
+
+
+# ---------------------------------------------------------------------------
+# Main entry point
+# ---------------------------------------------------------------------------
+
+
+async def main() -> None:  # pragma: no cover
     """Create the bot, load cogs, and start the connection."""
     parser = argparse.ArgumentParser(description="Adventurer Sheet bot")
     parser.add_argument(
@@ -47,17 +93,8 @@ async def main() -> None:
     logger.info("Database: %s", database_url)
 
     # Resolve the dev guild ID: CLI flag takes priority, then env var.
-    dev_guild_id: int | None = None
     raw_guild = args.dev_guild or config.get("DEV_GUILD_ID")
-    if raw_guild:
-        try:
-            dev_guild_id = int(raw_guild)
-        except ValueError:
-            logger.warning(
-                "Invalid DEV_GUILD_ID %r — must be an integer. "
-                "Falling back to global sync.",
-                raw_guild,
-            )
+    dev_guild_id = resolve_dev_guild_id(raw_guild)
 
     # Set up the async database engine and create tables
     engine = create_async_engine(database_url, echo=False)
@@ -67,10 +104,7 @@ async def main() -> None:
     # Optionally seed test data (local dev only)
     # tests/seed.py is never copied into the Docker image
     if args.seed:
-        # Resolve tests/seed.py relative to the project root
-        # (two levels up from src/bot/__main__.py).
-        project_root = Path(__file__).resolve().parent.parent.parent
-        seed_path = project_root / "tests" / "seed.py"
+        seed_path = resolve_seed_path(Path(__file__))
         if seed_path.exists():
             spec = importlib.util.spec_from_file_location("seed", seed_path)
             if spec is None or spec.loader is None:
@@ -87,12 +121,9 @@ async def main() -> None:
                 seed_path,
             )
 
-    intents = discord.Intents.default()
-    intents.message_content = True
-
     bot = commands.Bot(
         command_prefix="!",  # fallback prefix — we use slash commands
-        intents=intents,
+        intents=build_intents(),
         description="Adventurer Sheet — D&D 5e character sheet bot",
     )
 
@@ -128,6 +159,6 @@ async def main() -> None:
     await bot.start(config["DISCORD_TOKEN"])
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     asyncio.run(main())
 
