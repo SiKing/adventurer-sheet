@@ -44,6 +44,11 @@ class About(commands.Cog):
             color=discord.Color.dark_red(),
         )
         embed.add_field(name="Version", value=info["version"], inline=True)
+        embed.add_field(
+            name="License",
+            value="[GNU GPL v3](https://www.gnu.org/licenses/gpl-3.0.html)",
+            inline=True,
+        )
         embed.set_footer(text="Made with discord.py")
         await interaction.response.send_message(embed=embed)
 
