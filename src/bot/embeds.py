@@ -14,7 +14,7 @@ def _fmt_modifier(score: int) -> str:
 
 def _fmt_score(score: int) -> str:
     """Format a score as '18 (+4)'."""
-    return f"{score} ({_fmt_modifier(score)})"
+    return f"{score:>2} ({_fmt_modifier(score)})"
 
 
 def build_character_embed(character: Character) -> discord.Embed:
@@ -23,6 +23,9 @@ def build_character_embed(character: Character) -> discord.Embed:
     All values are read directly from the stored ORM object. Ability score
     modifiers are computed here for display only — they are not stored and
     not used for any other logic.
+
+    Layout uses compact text blocks inside single fields so the sheet reads
+    well on both mobile (no column support) and desktop.
     """
     title = f"⚔️ {character.name}"
     description = (
@@ -38,64 +41,32 @@ def build_character_embed(character: Character) -> discord.Embed:
         color=discord.Color.dark_gold(),
     )
 
-    # --- Ability scores (inline, 3 per row) ---
-    embed.add_field(
-        name="STR",
-        value=_fmt_score(character.strength),
-        inline=True,
+    # --- Ability scores — two rows of three, monospace table ---
+    ability_block = (
+        "```\n"
+        f"STR {_fmt_score(character.strength)}  "
+        f"DEX {_fmt_score(character.dexterity)}  "
+        f"CON {_fmt_score(character.constitution)}\n"
+        f"INT {_fmt_score(character.intelligence)}  "
+        f"WIS {_fmt_score(character.wisdom)}  "
+        f"CHA {_fmt_score(character.charisma)}\n"
+        "```"
     )
-    embed.add_field(
-        name="DEX",
-        value=_fmt_score(character.dexterity),
-        inline=True,
-    )
-    embed.add_field(
-        name="CON",
-        value=_fmt_score(character.constitution),
-        inline=True,
-    )
-    embed.add_field(
-        name="INT",
-        value=_fmt_score(character.intelligence),
-        inline=True,
-    )
-    embed.add_field(
-        name="WIS",
-        value=_fmt_score(character.wisdom),
-        inline=True,
-    )
-    embed.add_field(
-        name="CHA",
-        value=_fmt_score(character.charisma),
-        inline=True,
-    )
+    embed.add_field(name="Ability Scores", value=ability_block, inline=False)
 
-    # --- Combat stats ---
-    embed.add_field(name="AC", value=str(character.armor_class), inline=True)
-    embed.add_field(name="Speed", value=f"{character.speed} ft", inline=True)
-    embed.add_field(
-        name="HP",
-        value=f"{character.current_hp} / {character.max_hp}",
-        inline=True,
-    )
-
-    # --- Derived stats ---
+    # --- Combat stats — two rows of three, monospace table ---
     init_sign = "+" if character.initiative >= 0 else ""
-    embed.add_field(
-        name="Initiative",
-        value=f"{init_sign}{character.initiative}",
-        inline=True,
+    combat_block = (
+        "```\n"
+        f"AC {character.armor_class}  ·  "
+        f"HP {character.current_hp}/{character.max_hp}  ·  "
+        f"Speed {character.speed} ft\n"
+        f"Init {init_sign}{character.initiative}  ·  "
+        f"Prof +{character.proficiency_bonus}  ·  "
+        f"Pasve Perc {character.passive_perception}\n"
+        "```"
     )
-    embed.add_field(
-        name="Proficiency",
-        value=f"+{character.proficiency_bonus}",
-        inline=True,
-    )
-    embed.add_field(
-        name="Passive Perception",
-        value=str(character.passive_perception),
-        inline=True,
-    )
+    embed.add_field(name="Combat", value=combat_block, inline=False)
 
     # --- XP ---
     embed.add_field(
