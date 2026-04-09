@@ -254,7 +254,16 @@ class CharacterCog(commands.Cog):
         try:
             char = await self._get_own_character(interaction, name)
         except CharacterNotFoundError as exc:
-            await interaction.response.send_message(str(exc), ephemeral=True)
+            # If a name was given, show a friendly "not found" message.
+            # Otherwise pass through the "no active character" message unchanged.
+            if name is not None:
+                msg = (
+                    f"⚠️ Character **{name}** not found for "
+                    f"**{interaction.user.display_name}**."
+                )
+            else:
+                msg = str(exc)
+            await interaction.response.send_message(msg, ephemeral=True)
             return
 
         # Update active character
@@ -290,7 +299,14 @@ class CharacterCog(commands.Cog):
         try:
             char = await self._get_own_character(interaction, name)
         except CharacterNotFoundError as exc:
-            await interaction.response.send_message(str(exc), ephemeral=True)
+            if name is not None:
+                msg = (
+                    f"⚠️ **{name}** not found for "
+                    f"**{interaction.user.display_name}**."
+                )
+            else:
+                msg = str(exc)
+            await interaction.response.send_message(msg, ephemeral=True)
             return
 
         try:
@@ -335,8 +351,12 @@ class CharacterCog(commands.Cog):
 
         try:
             await self._repo.get_by_name(owner_id, name)
-        except CharacterNotFoundError as exc:
-            await interaction.response.send_message(str(exc), ephemeral=True)
+        except CharacterNotFoundError:
+            await interaction.response.send_message(
+                f"⚠️ **{name}** not found for "
+                f"**{interaction.user.display_name}**.",
+                ephemeral=True,
+            )
             return
 
         view = ConfirmDeleteView(
