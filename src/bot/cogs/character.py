@@ -224,7 +224,7 @@ class CharacterCog(commands.Cog):
 
     @character_group.command(
         name="create",
-        description="Create a new D&D 5e character (opens a form).",
+        description="Create a new character (opens a form).",
     )
     async def character_create(self, interaction: discord.Interaction) -> None:
         """Open the character creation modal."""
