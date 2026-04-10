@@ -42,16 +42,96 @@ def _make_character(**kwargs) -> SimpleNamespace:
     return SimpleNamespace(**defaults)
 
 
+def _ability_field(embed) -> str:
+    """Return the value of the 'Ability Scores' field."""
+    return next(f for f in embed.fields if f.name == "Ability Scores").value
+
+
+def _combat_field(embed) -> str:
+    """Return the value of the 'Combat' field."""
+    return next(f for f in embed.fields if f.name == "Combat").value
+
+
 class TestBuildCharacterEmbed:
     def test_title_contains_character_name(self) -> None:
         char = _make_character(name="Thorin")
         embed = build_character_embed(char)
         assert "Thorin" in embed.title
 
-    def test_title_has_sword_emoji(self) -> None:
-        char = _make_character()
+    def test_title_has_sword_emoji_for_fighter(self) -> None:
+        char = _make_character(char_class="Fighter")
         embed = build_character_embed(char)
         assert "⚔️" in embed.title
+
+    def test_title_icon_barbarian(self) -> None:
+        char = _make_character(char_class="Barbarian")
+        embed = build_character_embed(char)
+        assert "🪓" in embed.title
+
+    def test_title_icon_bard(self) -> None:
+        char = _make_character(char_class="Bard")
+        embed = build_character_embed(char)
+        assert "🪈" in embed.title
+
+    def test_title_icon_cleric(self) -> None:
+        char = _make_character(char_class="Cleric")
+        embed = build_character_embed(char)
+        assert "🍷" in embed.title
+
+    def test_title_icon_druid(self) -> None:
+        char = _make_character(char_class="Druid")
+        embed = build_character_embed(char)
+        assert "🦡" in embed.title
+
+    def test_title_icon_monk(self) -> None:
+        char = _make_character(char_class="Monk")
+        embed = build_character_embed(char)
+        assert "🥋" in embed.title
+
+    def test_title_icon_paladin(self) -> None:
+        char = _make_character(char_class="Paladin")
+        embed = build_character_embed(char)
+        assert "🛡️" in embed.title
+
+    def test_title_icon_ranger(self) -> None:
+        char = _make_character(char_class="Ranger")
+        embed = build_character_embed(char)
+        assert "🏹" in embed.title
+
+    def test_title_icon_rogue(self) -> None:
+        char = _make_character(char_class="Rogue")
+        embed = build_character_embed(char)
+        assert "🗝️" in embed.title
+
+    def test_title_icon_sorcerer(self) -> None:
+        char = _make_character(char_class="Sorcerer")
+        embed = build_character_embed(char)
+        assert "💫" in embed.title
+
+    def test_title_icon_warlock(self) -> None:
+        char = _make_character(char_class="Warlock")
+        embed = build_character_embed(char)
+        assert "👿" in embed.title
+
+    def test_title_icon_wizard(self) -> None:
+        char = _make_character(char_class="Wizard")
+        embed = build_character_embed(char)
+        assert "🧙" in embed.title
+
+    def test_title_icon_default_for_unknown_class(self) -> None:
+        char = _make_character(char_class="Artificer")
+        embed = build_character_embed(char)
+        assert "🎲" in embed.title
+
+    def test_title_icon_multiclass_matches_first_class(self) -> None:
+        char = _make_character(char_class="Fighter/Wizard")
+        embed = build_character_embed(char)
+        assert "⚔️" in embed.title
+
+    def test_title_icon_case_insensitive(self) -> None:
+        char = _make_character(char_class="wizard")
+        embed = build_character_embed(char)
+        assert "🧙" in embed.title
 
     def test_description_contains_race(self) -> None:
         char = _make_character(race="Dwarf")
@@ -85,74 +165,96 @@ class TestBuildCharacterEmbed:
         embed = build_character_embed(char)
         assert embed.color == discord.Color.dark_gold()
 
-    def test_str_field_shows_score_and_modifier(self) -> None:
+    # --- Ability scores block ---
+
+    def test_ability_block_contains_str_label(self) -> None:
         char = _make_character(strength=18)
         embed = build_character_embed(char)
-        str_field = next(f for f in embed.fields if f.name == "STR")
-        assert "18" in str_field.value
-        assert "+4" in str_field.value
+        assert "STR" in _ability_field(embed)
 
-    def test_dex_field_shows_modifier(self) -> None:
+    def test_ability_block_shows_str_score_and_modifier(self) -> None:
+        char = _make_character(strength=18)
+        embed = build_character_embed(char)
+        value = _ability_field(embed)
+        assert "18" in value
+        assert "+4" in value
+
+    def test_ability_block_shows_dex_modifier(self) -> None:
         char = _make_character(dexterity=10)
         embed = build_character_embed(char)
-        dex_field = next(f for f in embed.fields if f.name == "DEX")
-        assert "+0" in dex_field.value
+        assert "+0" in _ability_field(embed)
 
-    def test_wis_field_shows_negative_modifier(self) -> None:
+    def test_ability_block_shows_negative_modifier(self) -> None:
         char = _make_character(wisdom=8)
         embed = build_character_embed(char)
-        wis_field = next(f for f in embed.fields if f.name == "WIS")
-        assert "-1" in wis_field.value
+        assert "-1" in _ability_field(embed)
 
-    def test_hp_field_shows_current_and_max(self) -> None:
+    def test_ability_block_contains_all_six_labels(self) -> None:
+        char = _make_character()
+        embed = build_character_embed(char)
+        value = _ability_field(embed)
+        for label in ("STR", "DEX", "CON", "INT", "WIS", "CHA"):
+            assert label in value
+
+    def test_ability_block_is_not_inline(self) -> None:
+        char = _make_character()
+        embed = build_character_embed(char)
+        field = next(f for f in embed.fields if f.name == "Ability Scores")
+        assert field.inline is False
+
+    # --- Combat block ---
+
+    def test_combat_block_shows_hp(self) -> None:
         char = _make_character(current_hp=30, max_hp=52)
         embed = build_character_embed(char)
-        hp_field = next(f for f in embed.fields if f.name == "HP")
-        assert "30" in hp_field.value
-        assert "52" in hp_field.value
+        value = _combat_field(embed)
+        assert "30" in value
+        assert "52" in value
 
-    def test_ac_field(self) -> None:
+    def test_combat_block_shows_ac(self) -> None:
         char = _make_character(armor_class=16)
         embed = build_character_embed(char)
-        ac_field = next(f for f in embed.fields if f.name == "AC")
-        assert "16" in ac_field.value
+        assert "16" in _combat_field(embed)
 
-    def test_speed_field_shows_feet(self) -> None:
+    def test_combat_block_shows_speed_with_ft(self) -> None:
         char = _make_character(speed=25)
         embed = build_character_embed(char)
-        speed_field = next(f for f in embed.fields if f.name == "Speed")
-        assert "25" in speed_field.value
-        assert "ft" in speed_field.value
+        value = _combat_field(embed)
+        assert "25" in value
+        assert "ft" in value
 
-    def test_initiative_positive_has_plus_sign(self) -> None:
+    def test_combat_block_initiative_positive_has_plus_sign(self) -> None:
         char = _make_character(initiative=3)
         embed = build_character_embed(char)
-        init_field = next(f for f in embed.fields if f.name == "Initiative")
-        assert "+3" in init_field.value
+        assert "+3" in _combat_field(embed)
 
-    def test_initiative_zero_has_plus_sign(self) -> None:
+    def test_combat_block_initiative_zero_has_plus_sign(self) -> None:
         char = _make_character(initiative=0)
         embed = build_character_embed(char)
-        init_field = next(f for f in embed.fields if f.name == "Initiative")
-        assert "+0" in init_field.value
+        assert "+0" in _combat_field(embed)
 
-    def test_initiative_negative_has_minus_sign(self) -> None:
+    def test_combat_block_initiative_negative_has_minus_sign(self) -> None:
         char = _make_character(initiative=-1)
         embed = build_character_embed(char)
-        init_field = next(f for f in embed.fields if f.name == "Initiative")
-        assert "-1" in init_field.value
+        assert "-1" in _combat_field(embed)
 
-    def test_proficiency_field(self) -> None:
+    def test_combat_block_shows_proficiency(self) -> None:
         char = _make_character(proficiency_bonus=3)
         embed = build_character_embed(char)
-        prof_field = next(f for f in embed.fields if f.name == "Proficiency")
-        assert "+3" in prof_field.value
+        assert "+3" in _combat_field(embed)
 
-    def test_passive_perception_field(self) -> None:
+    def test_combat_block_shows_passive_perception(self) -> None:
         char = _make_character(passive_perception=11)
         embed = build_character_embed(char)
-        pp_field = next(f for f in embed.fields if f.name == "Passive Perception")
-        assert "11" in pp_field.value
+        assert "11" in _combat_field(embed)
+
+    def test_combat_block_is_not_inline(self) -> None:
+        char = _make_character()
+        embed = build_character_embed(char)
+        field = next(f for f in embed.fields if f.name == "Combat")
+        assert field.inline is False
+
+    # --- XP field ---
 
     def test_xp_field(self) -> None:
         char = _make_character(experience_points=6500)
@@ -161,6 +263,16 @@ class TestBuildCharacterEmbed:
             f for f in embed.fields if f.name == "Experience Points"
         )
         assert "6500" in xp_field.value
+
+    def test_xp_field_is_not_inline(self) -> None:
+        char = _make_character()
+        embed = build_character_embed(char)
+        xp_field = next(
+            f for f in embed.fields if f.name == "Experience Points"
+        )
+        assert xp_field.inline is False
+
+    # --- Footer ---
 
     def test_footer_contains_updated_date(self) -> None:
         char = _make_character(updated_at=datetime(2026, 4, 7, 15, 30, 0))
@@ -179,18 +291,4 @@ class TestBuildCharacterEmbed:
         embed = build_character_embed(char)
         assert isinstance(embed, discord.Embed)
 
-    def test_ability_score_fields_are_inline(self) -> None:
-        char = _make_character()
-        embed = build_character_embed(char)
-        for name in ("STR", "DEX", "CON", "INT", "WIS", "CHA"):
-            field = next(f for f in embed.fields if f.name == name)
-            assert field.inline is True
-
-    def test_xp_field_is_not_inline(self) -> None:
-        char = _make_character()
-        embed = build_character_embed(char)
-        xp_field = next(
-            f for f in embed.fields if f.name == "Experience Points"
-        )
-        assert xp_field.inline is False
 

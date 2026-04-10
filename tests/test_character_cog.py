@@ -60,6 +60,7 @@ def _make_interaction(user_id: str = "111111111111111111") -> MagicMock:
     user = MagicMock()
     user.id = int(user_id)
     user.name = "testuser"
+    user.display_name = "testuser"
     interaction.user = user
     interaction.response = AsyncMock()
     interaction.followup = AsyncMock()
@@ -236,8 +237,11 @@ class TestCharacterView:
         await cog.character_view.callback(cog, interaction, name="Nobody")
 
         interaction.response.send_message.assert_awaited_once()
-        _, kwargs = interaction.response.send_message.call_args
+        args, kwargs = interaction.response.send_message.call_args
         assert kwargs.get("ephemeral") is True
+        msg = args[0] if args else kwargs.get("content", "")
+        assert "Nobody" in msg
+        assert "testuser" in msg
 
 
 # ---------------------------------------------------------------------------
@@ -373,10 +377,13 @@ class TestCharacterDelete:
         await cog.character_delete.callback(cog, interaction, name="Nobody")
 
         interaction.response.send_message.assert_awaited_once()
-        _, kwargs = interaction.response.send_message.call_args
+        args, kwargs = interaction.response.send_message.call_args
         assert kwargs.get("ephemeral") is True
         # No view on error
         assert kwargs.get("view") is None or isinstance(kwargs.get("view"), type(None))
+        msg = args[0] if args else kwargs.get("content", "")
+        assert "Nobody" in msg
+        assert "testuser" in msg
 
     @pytest.mark.asyncio
     async def test_delete_confirm_removes_character(self) -> None:

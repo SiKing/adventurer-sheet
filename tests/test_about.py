@@ -100,3 +100,20 @@ class TestAboutCog:
         embed = call_kwargs.kwargs.get("embed") or call_kwargs.args[0]
         assert embed.description == "A D&D 5e character sheet bot."
 
+    @pytest.mark.asyncio
+    async def test_about_command_embed_contains_license(self, cog: About) -> None:
+        """The /about embed shows the GPL v3 license field."""
+        interaction = MagicMock(spec=discord.Interaction)
+        interaction.response = MagicMock()
+        interaction.response.send_message = AsyncMock()
+
+        mock_info = {"version": "0.1.3", "description": "A test bot."}
+        with patch("bot.cogs.about.get_project_info", return_value=mock_info):
+            await cog.about.callback(cog, interaction)
+
+        call_kwargs = interaction.response.send_message.call_args
+        embed = call_kwargs.kwargs.get("embed") or call_kwargs.args[0]
+        license_field = next(f for f in embed.fields if f.name == "License")
+        assert "GPL" in license_field.value
+        assert "gnu.org" in license_field.value
+
