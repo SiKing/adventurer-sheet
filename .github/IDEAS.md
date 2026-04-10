@@ -91,8 +91,14 @@ This one task is several smaller sub-tasks. All of these sub-tasks deal with the
 
 Rename "Combat" to "Combat Scores".
 
+Create a new column in the characters table to represent the class hit die: hit_die, Integer, Not null, default special (see below).
+
+During character creation default the Combat Scores based on the char_class and race. We will not consider multi-class characters at this time, so only the first class will be used for matching - use "starts_with" matcher instead of "equals" matcher.
+Use only basic classes and races from the 5e Player's Handbook to discover what all the defaults should be.
+For hit points, default to maximum at level 1.
+If you are not able to discover any values, do not make anything up - ask!
+
 Reformat the block display according to the following:
-.........1.........2.........3.......
 ```
 AC 10  ·  Init +0  ·  Speed 30ft
 HP 1 / 1  ·  d8
