@@ -58,10 +58,80 @@ class TestBuildCharacterEmbed:
         embed = build_character_embed(char)
         assert "Thorin" in embed.title
 
-    def test_title_has_sword_emoji(self) -> None:
-        char = _make_character()
+    def test_title_has_sword_emoji_for_fighter(self) -> None:
+        char = _make_character(char_class="Fighter")
         embed = build_character_embed(char)
         assert "⚔️" in embed.title
+
+    def test_title_icon_barbarian(self) -> None:
+        char = _make_character(char_class="Barbarian")
+        embed = build_character_embed(char)
+        assert "🪓" in embed.title
+
+    def test_title_icon_bard(self) -> None:
+        char = _make_character(char_class="Bard")
+        embed = build_character_embed(char)
+        assert "🪈" in embed.title
+
+    def test_title_icon_cleric(self) -> None:
+        char = _make_character(char_class="Cleric")
+        embed = build_character_embed(char)
+        assert "🍷" in embed.title
+
+    def test_title_icon_druid(self) -> None:
+        char = _make_character(char_class="Druid")
+        embed = build_character_embed(char)
+        assert "🦡" in embed.title
+
+    def test_title_icon_monk(self) -> None:
+        char = _make_character(char_class="Monk")
+        embed = build_character_embed(char)
+        assert "🥋" in embed.title
+
+    def test_title_icon_paladin(self) -> None:
+        char = _make_character(char_class="Paladin")
+        embed = build_character_embed(char)
+        assert "🛡️" in embed.title
+
+    def test_title_icon_ranger(self) -> None:
+        char = _make_character(char_class="Ranger")
+        embed = build_character_embed(char)
+        assert "🏹" in embed.title
+
+    def test_title_icon_rogue(self) -> None:
+        char = _make_character(char_class="Rogue")
+        embed = build_character_embed(char)
+        assert "🗝️" in embed.title
+
+    def test_title_icon_sorcerer(self) -> None:
+        char = _make_character(char_class="Sorcerer")
+        embed = build_character_embed(char)
+        assert "💫" in embed.title
+
+    def test_title_icon_warlock(self) -> None:
+        char = _make_character(char_class="Warlock")
+        embed = build_character_embed(char)
+        assert "👿" in embed.title
+
+    def test_title_icon_wizard(self) -> None:
+        char = _make_character(char_class="Wizard")
+        embed = build_character_embed(char)
+        assert "🧙" in embed.title
+
+    def test_title_icon_default_for_unknown_class(self) -> None:
+        char = _make_character(char_class="Artificer")
+        embed = build_character_embed(char)
+        assert "🎲" in embed.title
+
+    def test_title_icon_multiclass_matches_first_class(self) -> None:
+        char = _make_character(char_class="Fighter/Wizard")
+        embed = build_character_embed(char)
+        assert "⚔️" in embed.title
+
+    def test_title_icon_case_insensitive(self) -> None:
+        char = _make_character(char_class="wizard")
+        embed = build_character_embed(char)
+        assert "🧙" in embed.title
 
     def test_description_contains_race(self) -> None:
         char = _make_character(race="Dwarf")

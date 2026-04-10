@@ -5,6 +5,37 @@ import discord
 from bot.db import Character
 from bot.validators import ability_modifier
 
+# Ordered list of (prefix, emoji) pairs — checked with str.startswith.
+# Multi-classed characters (e.g. "Fighter/Wizard") match on the first class.
+_CLASS_ICONS: list[tuple[str, str]] = [
+    ("barbarian", "🪓"),
+    ("bard", "🪈"),
+    ("cleric", "🍷"),
+    ("druid", "🦡"),
+    ("fighter", "⚔️"),
+    ("monk", "🥋"),
+    ("paladin", "🛡️"),
+    ("ranger", "🏹"),
+    ("rogue", "🗝️"),
+    ("sorcerer", "💫"),
+    ("warlock", "👿"),
+    ("wizard", "🧙"),
+]
+_DEFAULT_ICON = "🎲"
+
+
+def _class_icon(char_class: str) -> str:
+    """Return the emoji for *char_class* using a starts_with match.
+
+    The comparison is case-insensitive so "Fighter", "fighter", and
+    "Fighter/Wizard" all match correctly.
+    """
+    lowered = char_class.lower()
+    for prefix, icon in _CLASS_ICONS:
+        if lowered.startswith(prefix):
+            return icon
+    return _DEFAULT_ICON
+
 
 def _fmt_modifier(score: int) -> str:
     """Format an ability score modifier as '+3' or '-1'."""
@@ -27,7 +58,7 @@ def build_character_embed(character: Character) -> discord.Embed:
     Layout uses compact text blocks inside single fields so the sheet reads
     well on both mobile (no column support) and desktop.
     """
-    title = f"⚔️ {character.name}"
+    title = f"{_class_icon(character.char_class)} {character.name}"
     description = (
         f"{character.race} {character.char_class} "
         f"({character.level}) · "
