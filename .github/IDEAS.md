@@ -43,9 +43,9 @@ Incorporate security: each end-user can see and modify only character sheets the
 
 ## Phase 3: Additional Features
 
-Will create additional features to be determined at a later time.
+Will create additional features as needed.
 
-Phase 3 will be divided into individual tasks. Each task should be treated as a separate new feature.
+Phase 3 will be divided into individual tasks. Each task should be treated as a separate new feature. Make sure ADR-008 is followed for each task, and that all documentation is updated accordingly.
 
 ### TASK-001: Persistent storage
 
