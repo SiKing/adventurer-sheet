@@ -7,9 +7,11 @@ They are used by the repository and the character cog to validate user input.
 from bot.errors import InvalidFieldError, InvalidValueError
 
 # ---------------------------------------------------------------------------
-# Editable field set — mirrors repository._EDITABLE_FIELDS
+# Field metadata — single source of truth for all field sets
 # ---------------------------------------------------------------------------
 
+# Fields the player is allowed to edit via /character edit.
+# All columns except id, owner_id, created_at, updated_at.
 EDITABLE_FIELDS: frozenset[str] = frozenset(
     {
         "name",
@@ -32,6 +34,46 @@ EDITABLE_FIELDS: frozenset[str] = frozenset(
         "proficiency_bonus",
         "passive_perception",
         "experience_points",
+    }
+)
+
+# Integer fields — value must be a valid integer string.
+INTEGER_FIELDS: frozenset[str] = frozenset(
+    {
+        "level",
+        "strength",
+        "dexterity",
+        "constitution",
+        "intelligence",
+        "wisdom",
+        "charisma",
+        "armor_class",
+        "speed",
+        "max_hp",
+        "current_hp",
+        "initiative",
+        "proficiency_bonus",
+        "passive_perception",
+        "experience_points",
+    }
+)
+
+# Integer fields that must be ≥ 1 (never zero or negative).
+POSITIVE_INT_FIELDS: frozenset[str] = frozenset(
+    {
+        "level",
+        "strength",
+        "dexterity",
+        "constitution",
+        "intelligence",
+        "wisdom",
+        "charisma",
+        "armor_class",
+        "speed",
+        "max_hp",
+        "current_hp",
+        "proficiency_bonus",
+        "passive_perception",
     }
 )
 
@@ -108,6 +150,33 @@ def validate_field_name(name: str) -> str:
             "Read-only fields: id, owner_id, created_at, updated_at."
         )
     return name
+
+
+def validate_field_value(field: str, value: str) -> str | int:
+    """Validate and coerce *value* for the given *field*.
+
+    Returns the coerced value (int for integer fields, str for string fields).
+
+    Raises:
+        InvalidFieldError: if *field* is not editable.
+        InvalidValueError: if *value* fails type or range validation.
+    """
+    validate_field_name(field)
+
+    if field in INTEGER_FIELDS:
+        try:
+            coerced = int(value)
+        except (ValueError, TypeError) as exc:
+            raise InvalidValueError(
+                f"'{field}' requires an integer value, got '{value}'."
+            ) from exc
+        if field in POSITIVE_INT_FIELDS and coerced < 1:
+            raise InvalidValueError(
+                f"'{field}' must be at least 1, got {coerced}."
+            )
+        return coerced
+
+    return value
 
 
 # ---------------------------------------------------------------------------
