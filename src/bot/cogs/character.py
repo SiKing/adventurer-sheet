@@ -218,6 +218,29 @@ class CharacterCog(commands.Cog):
 
         return await self._repo.get_by_name(owner_id, name)
 
+    async def _resolve_or_reply(
+        self,
+        interaction: discord.Interaction,
+        name: str | None,
+    ) -> Character | None:
+        """Resolve the character or send an ephemeral error and return None.
+
+        This wraps ``_get_own_character`` with the standard error-reply
+        pattern used by ``/character view`` and ``/character edit``.
+        """
+        try:
+            return await self._get_own_character(interaction, name)
+        except CharacterNotFoundError as exc:
+            if name is not None:
+                msg = (
+                    f"⚠️ Character **{name}** not found for "
+                    f"**{interaction.user.display_name}**."
+                )
+            else:
+                msg = str(exc)
+            await interaction.response.send_message(msg, ephemeral=True)
+            return None
+
     # ------------------------------------------------------------------
     # /character create
     # ------------------------------------------------------------------
@@ -251,19 +274,8 @@ class CharacterCog(commands.Cog):
         """Fetch and display a character as a rich embed."""
         owner_id = str(interaction.user.id)
 
-        try:
-            char = await self._get_own_character(interaction, name)
-        except CharacterNotFoundError as exc:
-            # If a name was given, show a friendly "not found" message.
-            # Otherwise pass through the "no active character" message unchanged.
-            if name is not None:
-                msg = (
-                    f"⚠️ Character **{name}** not found for "
-                    f"**{interaction.user.display_name}**."
-                )
-            else:
-                msg = str(exc)
-            await interaction.response.send_message(msg, ephemeral=True)
+        char = await self._resolve_or_reply(interaction, name)
+        if char is None:
             return
 
         # Update active character
@@ -295,18 +307,8 @@ class CharacterCog(commands.Cog):
         """Update a single editable field on a character."""
         owner_id = str(interaction.user.id)
 
-        # Resolve the character name first to catch missing active
-        try:
-            char = await self._get_own_character(interaction, name)
-        except CharacterNotFoundError as exc:
-            if name is not None:
-                msg = (
-                    f"⚠️ **{name}** not found for "
-                    f"**{interaction.user.display_name}**."
-                )
-            else:
-                msg = str(exc)
-            await interaction.response.send_message(msg, ephemeral=True)
+        char = await self._resolve_or_reply(interaction, name)
+        if char is None:
             return
 
         try:
@@ -412,7 +414,7 @@ class CharacterCog(commands.Cog):
 async def setup(bot: commands.Bot) -> None:
     """Called by bot.load_extension to register the cog."""
     # The session_factory is injected by __main__.py before load_extension.
-    repo: CharacterRepository = bot.__dict__["_character_repo"]
+    repo: CharacterRepository = bot._character_repo  # type: ignore[attr-defined]
     cog = CharacterCog(bot, repo)
     await bot.add_cog(cog)
 

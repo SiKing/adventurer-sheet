@@ -128,7 +128,7 @@ async def main() -> None:  # pragma: no cover
     )
 
     # Stash the repo on the bot so the character cog setup() can access it
-    bot.__dict__["_character_repo"] = CharacterRepository(session_factory)
+    bot._character_repo = CharacterRepository(session_factory)  # type: ignore[attr-defined]
 
     @bot.event
     async def on_ready() -> None:
