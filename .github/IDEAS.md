@@ -41,15 +41,77 @@ In this phase, everything will be manually entered by the end-user. An existing 
 
 Incorporate security: each end-user can see and modify only character sheets they have created. This will be based on Discord user ID?
 
-## Phase 3: Future Features
+## Phase 3: Additional Features
 
-Will create additional features to be determined at a later time. Some possibilities are:
+Will create additional features as needed.
+
+Phase 3 will be divided into individual tasks. Each task should be treated as a separate new feature. Make sure ADR-008 is followed for each task, and that all documentation is updated accordingly.
+
+### TASK-001: Persistent storage
+
+Switch the database to PostgreSQL (free on Railway) Railway provides a free managed PostgreSQL instance. This would require:
+
+- Changing DATABASE_URL to a postgresql+asyncpg://... connection string
+- Adding asyncpg to requirements.txt, removing aiosqlite
+- No schema changes needed — SQLAlchemy handles both dialects identically
+- Railway injects DATABASE_URL automatically when you provision a Postgres plugin
+- Update all documentation. Historical documentation should not be deleted only amended. Make sure to include any new setup steps that must be performed.
+
+### TASK-002: Backup storage
+
+Create the ability to back up and restore the production database.
+
+The backup location should **not** be local machine, or Railway. Suggest comparison of some options.
+
+### TASK-003: Modify stats
+
+Currently I am able to edit stats only by entering a new value. This is accomplished with the command `/character edit <field> <value>`.
+I want to be able to modify stats by entering an "incremental value". Entering value "+2" would increase the specified value by 2. I want to also be able to enter negative numbers to decrease a value. For sake of consistency I want to be able to enter "=10" which would set the current value to 10.
+
+Preserve existing functionality, where entering a value with no symbol just sets the current value to the number entered.
+
+Here are some examples that modify the strength field, using `/character edit strength <entered_value>`:
+
+| current strength | entered value | new strength |
+|------------------|---------------|--------------|
+| 10               | +2            | 12           |
+| 12               | -4            | 8            |
+| 8                | =13           | 13           |
+| 13               | 14            | 14           |
+
+
+### TASK-004: Post character to chat
+
+I want to have the ability to post my character sheet to current chat.
+This should be done with the command `/character post <name>`, where name is optional and follows established rules for active character.
+
+### TASK-005: Combat Scores
+
+This one task is several smaller sub-tasks. All of these sub-tasks deal with the "Combat" block in `/character view`.
+
+Rename "Combat" to "Combat Scores".
+
+Create a new column in the characters table to represent the class hit die: hit_die, Integer, Not null, default special (see below).
+
+During character creation default the Combat Scores based on the char_class and race. We will not consider multi-class characters at this time, so only the first class will be used for matching - use "starts_with" matcher instead of "equals" matcher.
+Use only basic classes and races from the 5e Player's Handbook to discover what all the defaults should be.
+For hit points, default to maximum at level 1.
+If you are not able to discover any values, do not make anything up - ask!
+
+Reformat the block display according to the following:
+```
+AC 10  ·  Init +0  ·  Speed 30ft
+HP 1 / 1  ·  d8
+Inspr +1  ·  Prof +2  ·  Percept 10
+```
+
+### Tasks still under consideration
+
+- Realign combat scores.
+- Default combat scored.
+- Link Combat scores.
+- Create page 2: skills and feats
+- Create page 3: spells
 - Automatically update stats based on level progression.
 - Automatically update stats based on new skills, feats, etc.
 - Retrieve descriptions of skills, feats, spells, etc. using REST calls to dnd5eapi.com
-- Create the ability to back up and restore the production database.
-- Switch the database to PostgreSQL (free on Railway) Railway provides a free managed PostgreSQL instance. This would require:
-  - Changing DATABASE_URL to a postgresql+asyncpg://... connection string
-  - Adding asyncpg to requirements.txt, removing aiosqlite
-  - No schema changes needed — SQLAlchemy handles both dialects identically
-  - Railway injects DATABASE_URL automatically when you provision a Postgres plugin
