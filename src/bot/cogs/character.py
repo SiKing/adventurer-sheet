@@ -414,7 +414,7 @@ class CharacterCog(commands.Cog):
 async def setup(bot: commands.Bot) -> None:
     """Called by bot.load_extension to register the cog."""
     # The session_factory is injected by __main__.py before load_extension.
-    repo: CharacterRepository = bot.__dict__["_character_repo"]
+    repo: CharacterRepository = bot._character_repo  # type: ignore[attr-defined]
     cog = CharacterCog(bot, repo)
     await bot.add_cog(cog)
 
