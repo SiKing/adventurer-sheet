@@ -5,11 +5,14 @@ import pytest
 from bot.errors import InvalidFieldError, InvalidValueError
 from bot.validators import (
     EDITABLE_FIELDS,
+    INTEGER_FIELDS,
+    POSITIVE_INT_FIELDS,
     ability_modifier,
     default_passive_perception,
     proficiency_bonus,
     validate_ability_score,
     validate_field_name,
+    validate_field_value,
     validate_level,
     validate_positive_int,
 )
@@ -267,4 +270,65 @@ class TestEditableFields:
     def test_excludes_readonly_fields(self) -> None:
         for field in ("id", "owner_id", "created_at", "updated_at"):
             assert field not in EDITABLE_FIELDS
+
+
+# ---------------------------------------------------------------------------
+# INTEGER_FIELDS and POSITIVE_INT_FIELDS constants
+# ---------------------------------------------------------------------------
+
+
+class TestFieldSets:
+    def test_integer_fields_is_frozenset(self) -> None:
+        assert isinstance(INTEGER_FIELDS, frozenset)
+
+    def test_positive_int_fields_is_frozenset(self) -> None:
+        assert isinstance(POSITIVE_INT_FIELDS, frozenset)
+
+    def test_positive_int_fields_subset_of_integer_fields(self) -> None:
+        assert POSITIVE_INT_FIELDS <= INTEGER_FIELDS
+
+    def test_integer_fields_subset_of_editable_fields(self) -> None:
+        assert INTEGER_FIELDS <= EDITABLE_FIELDS
+
+    def test_initiative_is_integer_but_not_positive(self) -> None:
+        """Initiative can be negative (e.g. low DEX)."""
+        assert "initiative" in INTEGER_FIELDS
+        assert "initiative" not in POSITIVE_INT_FIELDS
+
+    def test_experience_points_is_integer_but_not_positive(self) -> None:
+        """XP can be 0."""
+        assert "experience_points" in INTEGER_FIELDS
+        assert "experience_points" not in POSITIVE_INT_FIELDS
+
+
+# ---------------------------------------------------------------------------
+# validate_field_value
+# ---------------------------------------------------------------------------
+
+
+class TestValidateFieldValue:
+    def test_string_field_returns_string(self) -> None:
+        assert validate_field_value("alignment", "Chaotic Good") == "Chaotic Good"
+
+    def test_integer_field_returns_int(self) -> None:
+        assert validate_field_value("strength", "18") == 18
+
+    def test_positive_int_field_rejects_zero(self) -> None:
+        with pytest.raises(InvalidValueError, match="at least 1"):
+            validate_field_value("level", "0")
+
+    def test_integer_field_rejects_non_numeric(self) -> None:
+        with pytest.raises(InvalidValueError, match="integer"):
+            validate_field_value("strength", "abc")
+
+    def test_invalid_field_raises(self) -> None:
+        with pytest.raises(InvalidFieldError):
+            validate_field_value("owner_id", "999")
+
+    def test_initiative_allows_negative(self) -> None:
+        assert validate_field_value("initiative", "-2") == -2
+
+    def test_experience_points_allows_zero(self) -> None:
+        assert validate_field_value("experience_points", "0") == 0
+
 

@@ -8,97 +8,19 @@ from bot.db import Character
 from bot.errors import (
     CharacterAlreadyExistsError,
     CharacterNotFoundError,
-    InvalidFieldError,
-    InvalidValueError,
 )
-
-# ---------------------------------------------------------------------------
-# Field metadata
-# ---------------------------------------------------------------------------
-
-# Fields the player is allowed to edit via /character edit.
-# All columns except id, owner_id, created_at, updated_at.
-_EDITABLE_FIELDS: frozenset[str] = frozenset(
-    {
-        "name",
-        "char_class",
-        "level",
-        "race",
-        "background",
-        "alignment",
-        "strength",
-        "dexterity",
-        "constitution",
-        "intelligence",
-        "wisdom",
-        "charisma",
-        "armor_class",
-        "speed",
-        "max_hp",
-        "current_hp",
-        "initiative",
-        "proficiency_bonus",
-        "passive_perception",
-        "experience_points",
-    }
+from bot.validators import (
+    ability_modifier as _ability_modifier,
 )
-
-# Integer fields — value must be a valid integer string.
-_INTEGER_FIELDS: frozenset[str] = frozenset(
-    {
-        "level",
-        "strength",
-        "dexterity",
-        "constitution",
-        "intelligence",
-        "wisdom",
-        "charisma",
-        "armor_class",
-        "speed",
-        "max_hp",
-        "current_hp",
-        "initiative",
-        "proficiency_bonus",
-        "passive_perception",
-        "experience_points",
-    }
+from bot.validators import (
+    default_passive_perception as _default_passive_perception,
 )
-
-# Integer fields that must be ≥ 1 (never zero or negative).
-_POSITIVE_INT_FIELDS: frozenset[str] = frozenset(
-    {
-        "level",
-        "strength",
-        "dexterity",
-        "constitution",
-        "intelligence",
-        "wisdom",
-        "charisma",
-        "armor_class",
-        "speed",
-        "max_hp",
-        "current_hp",
-        "proficiency_bonus",
-        "passive_perception",
-    }
+from bot.validators import (
+    proficiency_bonus as _proficiency_bonus,
 )
-
-
-# ---------------------------------------------------------------------------
-# Default-value helpers (used only at creation time)
-# ---------------------------------------------------------------------------
-
-def _ability_modifier(score: int) -> int:
-    return (score - 10) // 2
-
-
-def _proficiency_bonus(level: int) -> int:
-    return 2 + (level - 1) // 4
-
-
-def _default_passive_perception(wisdom: int) -> int:
-    return 10 + _ability_modifier(wisdom)
-
+from bot.validators import (
+    validate_field_value,
+)
 
 # ---------------------------------------------------------------------------
 # Repository
@@ -241,25 +163,7 @@ class CharacterRepository:
             InvalidFieldError: if field is not in the editable set.
             InvalidValueError: if value fails type or range validation.
         """
-        if field not in _EDITABLE_FIELDS:
-            raise InvalidFieldError(
-                f"'{field}' is not an editable field. "
-                f"Read-only fields: id, owner_id, created_at, updated_at."
-            )
-
-        # Validate and coerce value.
-        coerced: str | int = value
-        if field in _INTEGER_FIELDS:
-            try:
-                coerced = int(value)
-            except (ValueError, TypeError) as exc:
-                raise InvalidValueError(
-                    f"'{field}' requires an integer value, got '{value}'."
-                ) from exc
-            if field in _POSITIVE_INT_FIELDS and coerced < 1:
-                raise InvalidValueError(
-                    f"'{field}' must be at least 1, got {coerced}."
-                )
+        coerced = validate_field_value(field, value)
 
         async with self._session_factory() as session:
             result = await session.execute(
