@@ -22,7 +22,7 @@ Tasks are ordered by dependency — #10 must complete before #11.
 | Issue | Title | Branch | Depends On | Status |
 |-------|-------|--------|------------|--------|
 | [#10](https://github.com/SiKing/adventurer-sheet/issues/10) | Persistent storage (SQLite → PostgreSQL) | `feat/persistent-storage` | — | ✅ Complete |
-| [#11](https://github.com/SiKing/adventurer-sheet/issues/11) | Backup storage | `feat/backup-storage` | #10 | 🔲 Not started |
+| [#11](https://github.com/SiKing/adventurer-sheet/issues/11) | Backup storage | `feat/backup-storage` | #10 | 🔄 In progress |
 | [#12](https://github.com/SiKing/adventurer-sheet/issues/12) | Modify stats (incremental edits) | `feat/modify-stats` | — | 🔲 Not started |
 | [#13](https://github.com/SiKing/adventurer-sheet/issues/13) | Post character to chat | `feat/post-character` | — | 🔲 Not started |
 | [#14](https://github.com/SiKing/adventurer-sheet/issues/14) | Combat Scores | `feat/combat-scores` | — | 🔲 Not started |
@@ -258,30 +258,109 @@ jobs:
 
 **Issue:** [#11](https://github.com/SiKing/adventurer-sheet/issues/11)
 **Branch:** `feat/backup-storage`
-**Version bump:** next patch from main
+**Version bump:** `0.2.1` → `0.2.2`
 **Depends on:** #10 (must be on PostgreSQL first)
+**Status:** 🔄 In progress
 
 ### Summary
 
 Create the ability to back up and restore the production PostgreSQL database.
 Backup location must not be local machine or Railway.
 
-### Planning Note
+### Decision — GitHub Releases
 
-This task requires a comparison of backup destination options before
-implementation. The comparison will be added to this section when #10 is
-complete and #11 work begins. Options to evaluate:
+After evaluating options, **GitHub Releases** was chosen:
 
 | Option | Cost | Pros | Cons |
 |--------|------|------|------|
 | **AWS S3** (free tier) | Free 5GB | Industry standard, boto3 SDK | AWS account setup |
 | **Cloudflare R2** | Free 10GB | S3-compatible API, generous free tier | Newer service |
 | **Backblaze B2** | Free 10GB | S3-compatible, simple pricing | Less known |
-| **GitHub Releases** | Free | Already have account, zero new infra | Not designed for DB backups |
+| **GitHub Releases** ✅ | Free | Already have account, zero new infra | Not designed for DB backups |
+
+**Rationale:** Zero cost, zero new accounts, existing GitHub infrastructure.
+Backups are stored as pre-release assets to avoid polluting the "latest" release.
+
+### Architecture
+
+**Storage abstraction:** A `BackupStorage` Protocol allows swapping providers
+with one new file + one line change. Current adapter: `GitHubReleaseStorage`.
+
+**Naming convention:**
+- Filename: `backup-2026-05-01T12-00-00.sql.gz`
+- Release tag: `backup/2026-05-01T12-00-00`
+
+**Automation:** GitHub Actions monthly cron (`0 3 1 * *`) + manual
+`workflow_dispatch`. Runs `pg_dump` → gzip → upload to GitHub Release.
+
+**Restore:** Manual process — download asset, `gunzip`, `psql < backup.sql`.
 
 ### Implementation Steps
 
-*Detailed steps to be written when this task begins.*
+#### Step 1 — Storage Protocol
+
+**File:** `src/bot/backup/storage.py` ✅
+
+`BackupStorage` Protocol with three methods:
+- `upload(filename, data) → str` (returns download URL)
+- `download(filename) → bytes`
+- `list_backups() → list[str]`
+
+#### Step 2 — GitHub Releases adapter
+
+**File:** `src/bot/backup/github_storage.py` ✅
+
+`GitHubReleaseStorage` class using `aiohttp` to interact with GitHub API.
+Creates pre-release releases with backup files as assets.
+
+#### Step 3 — Backup service
+
+**File:** `src/bot/backup/service.py` ✅
+
+`create_backup(database_url) → (filename, compressed_data)`:
+- Normalises URL (`postgresql+asyncpg://` → `postgresql://` for pg_dump)
+- Runs `pg_dump` via `asyncio.create_subprocess_exec`
+- Returns gzipped SQL dump
+
+#### Step 4 — CLI script and GitHub Actions workflow
+
+**Files:** `scripts/backup.py`, `.github/workflows/backup.yml` ✅
+
+CLI script reads `DATABASE_URL`, `GITHUB_TOKEN`, `GITHUB_REPOSITORY` env vars.
+Workflow runs monthly on cron + manual dispatch.
+
+#### Step 5 — Dependencies
+
+**File:** `requirements.txt` ✅
+
+Added `aiohttp~=3.13` for GitHub API calls.
+
+#### Step 6 — Tests
+
+**Files:** `tests/test_backup_service.py`, `tests/test_backup_github_storage.py` ✅
+
+- `TestNormalizeUrl`: 3 pure unit tests ✅
+- `TestFilenameToTag`: 4 pure unit tests ✅
+- `TestCreateBackup`: 3 integration tests (require `pg_dump` binary)
+
+#### Step 7 — Documentation
+
+Update ARCHITECTURE.md, SETUP.md, copilot-instructions.md with backup details.
+
+### Setup Requirements
+
+1. **GitHub Actions secret:** Add `PROD_DATABASE_URL` (Railway PostgreSQL URL)
+   in repo Settings → Secrets → Actions
+2. **GitHub token:** Workflow uses `GITHUB_TOKEN` (auto-provided by Actions)
+
+### Risk Register
+
+| Risk | Likelihood | Impact | Mitigation |
+|------|-----------|--------|------------|
+| GitHub Release asset size limit (2 GB) | Low | Low | DB is tiny; monitor growth |
+| GitHub API rate limits | Low | Low | One backup/month is well within limits |
+| pg_dump version mismatch | Low | Medium | Pin Postgres version in workflow |
+| Token permissions | Low | Medium | Workflow uses default `GITHUB_TOKEN` with `contents: write` |
 
 ---
 
