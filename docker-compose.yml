@@ -1,0 +1,12 @@
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: adventurer_sheet
+      POSTGRES_USER: bot
+      POSTGRES_PASSWORD: bot
+    ports:
+      - "5432:5432"
+    tmpfs:
+      - /var/lib/postgresql/data
+

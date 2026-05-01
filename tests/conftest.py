@@ -1,15 +1,24 @@
 """Shared async pytest fixtures for database integration tests."""
 
+import os
+
 import pytest
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
-from bot.db import Character, create_tables, get_session_factory
+from bot.db import Base, Character, create_tables, get_session_factory
+
+TEST_DATABASE_URL = os.environ.get(
+    "TEST_DATABASE_URL",
+    "postgresql+asyncpg://bot:bot@localhost:5432/adventurer_sheet",
+)
 
 
 @pytest.fixture()
 async def engine() -> AsyncEngine:
-    """In-memory async SQLite engine, tables created fresh for each test."""
-    engine = create_async_engine("sqlite+aiosqlite:///:memory:", echo=False)
+    """PostgreSQL engine, tables dropped and recreated fresh for each test."""
+    engine = create_async_engine(TEST_DATABASE_URL, echo=False)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
     await create_tables(engine)
     yield engine
     await engine.dispose()

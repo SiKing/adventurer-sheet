@@ -65,6 +65,12 @@ users while the query runs.
 - Sync SQLAlchemy in `run_in_executor` — works but adds indirection; async SQLAlchemy is now stable.
 - PostgreSQL — unnecessary operational overhead for a single-instance bot.
 
+> **Amendment (Phase 3, Issue #10):** Database switched from SQLite/aiosqlite
+> to PostgreSQL/asyncpg. SQLAlchemy ORM abstracted the migration — no schema
+> changes were required. PostgreSQL provides proper concurrent access, ACID
+> compliance, and is managed by Railway in production. Local development uses
+> Docker Compose to run PostgreSQL.
+
 ---
 
 ## ADR-003: Database File Location in Production
@@ -82,6 +88,13 @@ survives deploys and restarts. Point `DATABASE_URL` at `/data/adventurer-sheet.d
 
 **Local development:** `DATABASE_URL` defaults to `sqlite+aiosqlite:///./characters.db`
 (relative path, current directory). No code change needed between environments.
+
+> **Amendment (Phase 3, Issue #10):** Database storage moved from a SQLite file
+> on a Railway persistent volume to a Railway-managed PostgreSQL instance.
+> `DATABASE_URL` is injected by Railway automatically. Local development uses
+> Docker Compose to run PostgreSQL (`docker compose up -d`). The `/data` volume
+> mount is no longer needed. `config.py` auto-rewrites Railway's `postgresql://`
+> to `postgresql+asyncpg://` for SQLAlchemy async compatibility.
 
 ---
 

@@ -7,6 +7,7 @@ A D&D 5e character sheet Discord bot built with Python and discord.py.
 ### Prerequisites
 
 - Python 3.12+ (via [pyenv](https://github.com/pyenv/pyenv))
+- Docker (for local PostgreSQL)
 - A Discord Bot Token ([setup guide](.github/PLAN-PHASE1.md#step-2-discord-application-setup))
 
 ### Setup
@@ -28,6 +29,9 @@ pip install -r requirements.txt -r requirements-dev.txt
 # Configure your bot token
 cp .env.example .env
 # Edit .env and paste your DISCORD_TOKEN
+
+# Start local PostgreSQL
+docker compose up -d
 ```
 
 ### Lint
@@ -76,7 +80,9 @@ tests/            — Test suite
 |------|---------|
 | discord.py | Discord bot framework |
 | python-dotenv | Environment variable loading |
-| SQLAlchemy | Database ORM (Phase 2) |
+| SQLAlchemy | Database ORM (async) |
+| asyncpg | PostgreSQL async driver |
+| Docker Compose | Local PostgreSQL for dev/test |
 | pytest | Testing |
 | ruff | Linting |
 | GitHub Actions | CI/CD |
