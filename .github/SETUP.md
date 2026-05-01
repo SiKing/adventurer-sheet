@@ -7,6 +7,7 @@ Quick setup instructions for cloning and running the Adventurer Sheet bot on a n
 ## Prerequisites
 
 - Git with SSH keys configured for GitHub
+- Docker (for local PostgreSQL database)
 - A terminal (bash or zsh)
 - Your Discord bot token (from [discord.com/developers](https://discord.com/developers))
 
@@ -45,10 +46,13 @@ pip install -r requirements.txt -r requirements-dev.txt
 cp .env.example .env
 # Edit .env and paste your DISCORD_TOKEN
 
-# 7. Run tests
+# 7. Start local PostgreSQL
+docker compose up -d
+
+# 8. Run tests
 pytest -v
 
-# 8. Run the bot
+# 9. Run the bot
 cd src
 python -m bot
 ```
@@ -97,10 +101,13 @@ pip install -r requirements.txt -r requirements-dev.txt
 cp .env.example .env
 nano .env   # paste your DISCORD_TOKEN
 
-# 8. Run tests
+# 8. Start local PostgreSQL
+docker compose up -d
+
+# 9. Run tests
 pytest -v
 
-# 9. Run the bot
+# 10. Run the bot
 cd src
 python -m bot
 ```
@@ -129,10 +136,25 @@ After setup, verify everything works:
 - [ ] `python --version` → Python 3.12.x
 - [ ] `which python` → points to `.venv/bin/python`
 - [ ] `pip list | grep discord` → discord.py installed
+- [ ] `docker compose ps` → postgres container is running
 - [ ] `pytest -v` → all tests pass
 - [ ] `ruff check src/ tests/` → no lint errors
 - [ ] Bot comes online in Discord when you run `cd src && python -m bot`
-- [ ] `/hello` command responds with "Hello, World! 🎲"
+- [ ] `/about` command responds
+
+---
+
+## Railway Postgres Provisioning (Production)
+
+1. Open the [Railway dashboard](https://railway.app/dashboard) → your `adventurer-sheet` project
+2. Click **"+ New"** → **"Database"** → **"Add PostgreSQL"**
+3. Railway creates a Postgres instance and auto-injects `DATABASE_URL` into your service's environment variables
+4. Verify in the **Variables** tab: `DATABASE_URL` should show `postgresql://...`
+5. Redeploy the service — `config.py` auto-rewrites `postgresql://` to `postgresql+asyncpg://`
+6. Check Railway logs: should show `Database: postgresql+asyncpg://...`
+
+> **Note:** If migrating from an earlier SQLite deployment, remove the Railway Volume
+> that was mounted at `/data` — it is no longer needed.
 
 ---
 
@@ -145,4 +167,6 @@ After setup, verify everything works:
 | `Cannot connect to host discord.com` | Network/firewall is blocking Discord — try a different network |
 | `/hello` doesn't appear in Discord | Slash commands can take up to 1 hour to sync globally. Wait and retry |
 | `RuntimeError: DISCORD_TOKEN is not set` | Make sure `.env` exists in the project root with `DISCORD_TOKEN=your-token` |
+| `connection refused` on port 5432 | Run `docker compose up -d` to start local PostgreSQL |
+| Tests fail with `asyncpg` connection errors | Ensure Postgres is running: `docker compose ps` |
 

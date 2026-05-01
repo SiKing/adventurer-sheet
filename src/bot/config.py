@@ -30,8 +30,15 @@ def load_config() -> dict[str, str]:
         )
 
     database_url = os.environ.get(
-        "DATABASE_URL", "sqlite+aiosqlite:///./characters.db"
+        "DATABASE_URL",
+        "postgresql+asyncpg://bot:bot@localhost:5432/adventurer_sheet",
     ).strip()
+
+    # Railway provides postgresql:// but SQLAlchemy async needs postgresql+asyncpg://
+    if database_url.startswith("postgresql://"):
+        database_url = database_url.replace(
+            "postgresql://", "postgresql+asyncpg://", 1
+        )
 
     dev_guild_id = os.environ.get("DEV_GUILD_ID", "").strip()
 

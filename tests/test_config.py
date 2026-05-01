@@ -49,9 +49,12 @@ class TestLoadConfig:
     ) -> None:
         """Config returns DATABASE_URL in the config dict."""
         monkeypatch.setenv("DISCORD_TOKEN", "test-token")
-        monkeypatch.setenv("DATABASE_URL", "sqlite+aiosqlite:///./test.db")
+        monkeypatch.setenv(
+            "DATABASE_URL",
+            "postgresql+asyncpg://u:p@localhost/db",
+        )
         config = load_config()
-        assert config["DATABASE_URL"] == "sqlite+aiosqlite:///./test.db"
+        assert config["DATABASE_URL"] == "postgresql+asyncpg://u:p@localhost/db"
 
     def test_load_config_database_url_has_default(
         self, monkeypatch: pytest.MonkeyPatch
@@ -61,7 +64,31 @@ class TestLoadConfig:
         monkeypatch.delenv("DATABASE_URL", raising=False)
         config = load_config()
         assert "DATABASE_URL" in config
-        assert "sqlite+aiosqlite" in config["DATABASE_URL"]
+        assert "postgresql+asyncpg" in config["DATABASE_URL"]
+
+    def test_load_config_rewrites_railway_database_url(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Config rewrites Railway's postgresql:// to postgresql+asyncpg://."""
+        monkeypatch.setenv("DISCORD_TOKEN", "test-token")
+        monkeypatch.setenv(
+            "DATABASE_URL",
+            "postgresql://user:pass@host:5432/db",
+        )
+        config = load_config()
+        assert config["DATABASE_URL"] == (
+            "postgresql+asyncpg://user:pass@host:5432/db"
+        )
+
+    def test_load_config_does_not_double_rewrite_asyncpg_url(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Config does not rewrite a URL that already has +asyncpg."""
+        monkeypatch.setenv("DISCORD_TOKEN", "test-token")
+        url = "postgresql+asyncpg://u:p@host:5432/db"
+        monkeypatch.setenv("DATABASE_URL", url)
+        config = load_config()
+        assert config["DATABASE_URL"] == url
 
     def test_load_config_returns_dev_guild_id_when_set(
         self, monkeypatch: pytest.MonkeyPatch
