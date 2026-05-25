@@ -82,6 +82,7 @@ tests/            — Test suite
 | python-dotenv | Environment variable loading |
 | SQLAlchemy | Database ORM (async) |
 | asyncpg | PostgreSQL async driver |
+| aiohttp | HTTP client (GitHub API for backups) |
 | Docker Compose | Local PostgreSQL for dev/test |
 | pytest | Testing |
 | ruff | Linting |
