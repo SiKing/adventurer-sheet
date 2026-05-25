@@ -10,6 +10,13 @@ from bot.errors import (
     CharacterNotFoundError,
 )
 from bot.validators import (
+    INTEGER_FIELDS,
+    POSITIVE_INT_FIELDS,
+    parse_edit_value,
+    validate_field_name,
+    validate_field_value,
+)
+from bot.validators import (
     ability_modifier as _ability_modifier,
 )
 from bot.validators import (
@@ -17,9 +24,6 @@ from bot.validators import (
 )
 from bot.validators import (
     proficiency_bonus as _proficiency_bonus,
-)
-from bot.validators import (
-    validate_field_value,
 )
 
 # ---------------------------------------------------------------------------
@@ -158,12 +162,16 @@ class CharacterRepository:
     ) -> Character:
         """Update a single editable field on a character and return the updated object.
 
+        For integer fields, *value* may use incremental prefixes:
+        ``+N`` (add), ``-N`` (subtract), ``=N`` (set explicitly), or a bare
+        number (set, existing behaviour).
+
         Raises:
             CharacterNotFoundError: if the character does not exist for this owner.
             InvalidFieldError: if field is not in the editable set.
             InvalidValueError: if value fails type or range validation.
         """
-        coerced = validate_field_value(field, value)
+        validate_field_name(field)
 
         async with self._session_factory() as session:
             result = await session.execute(
@@ -178,6 +186,22 @@ class CharacterRepository:
                 raise CharacterNotFoundError(
                     f"Character '{name}' not found for owner '{owner_id}'."
                 )
+
+            # For integer fields, support incremental prefixes (+N, -N, =N).
+            if field in INTEGER_FIELDS and any(
+                value.strip().startswith(p) for p in ("+", "-", "=")
+            ):
+                current = getattr(char, field)
+                coerced = parse_edit_value(value, current)
+                # Enforce positive-int constraint after computing the result.
+                if field in POSITIVE_INT_FIELDS and coerced < 1:
+                    from bot.errors import InvalidValueError
+
+                    raise InvalidValueError(
+                        f"'{field}' must be at least 1, got {coerced}."
+                    )
+            else:
+                coerced = validate_field_value(field, value)
 
             setattr(char, field, coerced)
             await session.commit()

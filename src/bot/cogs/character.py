@@ -295,7 +295,7 @@ class CharacterCog(commands.Cog):
     @app_commands.describe(
         name="Character name (optional if you have an active character)",
         field="Field to edit (e.g. strength, level, alignment)",
-        value="New value for the field",
+        value="New value (use +N/-N to adjust, =N or bare number to set)",
     )
     async def character_edit(
         self,

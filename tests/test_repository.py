@@ -273,6 +273,57 @@ class TestUpdate:
         with pytest.raises(CharacterNotFoundError):
             await repo.update("200000000000000002", "Thorin", "strength", "18")
 
+    # -- Incremental edits (+N, -N, =N) --
+
+    async def test_update_increment_strength(self, session_factory) -> None:
+        repo = make_repo(session_factory)
+        await _create_default(repo)  # strength defaults to 10
+        char = await repo.update("100000000000000001", "Thorin", "strength", "+2")
+        assert char.strength == 12
+
+    async def test_update_decrement_current_hp(self, session_factory) -> None:
+        repo = make_repo(session_factory)
+        await repo.create(
+            owner_id="100000000000000001",
+            name="Thorin",
+            char_class="Fighter",
+            race="Dwarf",
+            background="Soldier",
+            alignment="Lawful Good",
+            current_hp=10,
+            max_hp=10,
+        )
+        updated = await repo.update("100000000000000001", "Thorin", "current_hp", "-3")
+        assert updated.current_hp == 7
+
+    async def test_update_equals_prefix_sets_absolute(self, session_factory) -> None:
+        repo = make_repo(session_factory)
+        await _create_default(repo)  # strength defaults to 10
+        char = await repo.update("100000000000000001", "Thorin", "strength", "=20")
+        assert char.strength == 20
+
+    async def test_update_increment_experience_points(self, session_factory) -> None:
+        repo = make_repo(session_factory)
+        await _create_default(repo)  # xp defaults to 0
+        char = await repo.update(
+            "100000000000000001", "Thorin", "experience_points", "+300"
+        )
+        assert char.experience_points == 300
+
+    async def test_update_decrement_below_minimum_raises(self, session_factory) -> None:
+        """Subtracting past the minimum for a positive-int field raises."""
+        repo = make_repo(session_factory)
+        await _create_default(repo)  # strength defaults to 10
+        with pytest.raises(InvalidValueError, match="at least 1"):
+            await repo.update("100000000000000001", "Thorin", "strength", "-20")
+
+    async def test_update_bare_number_still_works(self, session_factory) -> None:
+        """Bare numbers (no prefix) still set absolute values — existing behaviour."""
+        repo = make_repo(session_factory)
+        await _create_default(repo)
+        char = await repo.update("100000000000000001", "Thorin", "strength", "18")
+        assert char.strength == 18
+
 
 # ---------------------------------------------------------------------------
 # delete()

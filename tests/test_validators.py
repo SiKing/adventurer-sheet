@@ -9,6 +9,7 @@ from bot.validators import (
     POSITIVE_INT_FIELDS,
     ability_modifier,
     default_passive_perception,
+    parse_edit_value,
     proficiency_bonus,
     validate_ability_score,
     validate_field_name,
@@ -332,3 +333,66 @@ class TestValidateFieldValue:
         assert validate_field_value("experience_points", "0") == 0
 
 
+# ---------------------------------------------------------------------------
+# parse_edit_value
+# ---------------------------------------------------------------------------
+
+
+class TestParseEditValue:
+    """Test incremental edit value parsing (+N, -N, =N, bare N)."""
+
+    @pytest.mark.parametrize(
+        "raw,current,expected",
+        [
+            ("+2", 10, 12),
+            ("+0", 10, 10),
+            ("+100", 5, 105),
+        ],
+    )
+    def test_add_prefix(self, raw: str, current: int, expected: int) -> None:
+        assert parse_edit_value(raw, current) == expected
+
+    @pytest.mark.parametrize(
+        "raw,current,expected",
+        [
+            ("-4", 10, 6),
+            ("-10", 10, 0),
+            ("-1", 5, 4),
+        ],
+    )
+    def test_subtract_prefix(self, raw: str, current: int, expected: int) -> None:
+        assert parse_edit_value(raw, current) == expected
+
+    def test_subtract_below_zero(self) -> None:
+        """parse_edit_value does not enforce positive — caller's job."""
+        assert parse_edit_value("-20", 10) == -10
+
+    @pytest.mark.parametrize(
+        "raw,current,expected",
+        [
+            ("=13", 10, 13),
+            ("=0", 10, 0),
+            ("=1", 99, 1),
+        ],
+    )
+    def test_equals_prefix(self, raw: str, current: int, expected: int) -> None:
+        assert parse_edit_value(raw, current) == expected
+
+    @pytest.mark.parametrize(
+        "raw,current,expected",
+        [
+            ("14", 10, 14),
+            ("0", 10, 0),
+            ("1", 99, 1),
+        ],
+    )
+    def test_bare_number(self, raw: str, current: int, expected: int) -> None:
+        assert parse_edit_value(raw, current) == expected
+
+    def test_whitespace_stripped(self) -> None:
+        assert parse_edit_value("  +3  ", 10) == 13
+
+    @pytest.mark.parametrize("raw", ["abc", "+abc", "-xyz", "=nope", ""])
+    def test_non_numeric_raises(self, raw: str) -> None:
+        with pytest.raises(InvalidValueError):
+            parse_edit_value(raw, 10)
