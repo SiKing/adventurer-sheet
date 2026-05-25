@@ -24,7 +24,7 @@ When analyzing this project, always read these files first:
 |-------|-------|--------|
 | [#10](https://github.com/SiKing/adventurer-sheet/issues/10) | Persistent storage (SQLite → PostgreSQL) | ✅ Complete |
 | [#11](https://github.com/SiKing/adventurer-sheet/issues/11) | Backup storage | ✅ Complete |
-| [#12](https://github.com/SiKing/adventurer-sheet/issues/12) | Modify stats (incremental edits) | 🔲 Not started |
+| [#12](https://github.com/SiKing/adventurer-sheet/issues/12) | Modify stats (incremental edits) | ✅ Complete |
 | [#13](https://github.com/SiKing/adventurer-sheet/issues/13) | Post character to chat | ✅ Complete |
 | [#14](https://github.com/SiKing/adventurer-sheet/issues/14) | Combat Scores | 🔲 Not started |
 
