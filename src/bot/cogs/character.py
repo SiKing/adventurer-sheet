@@ -1,4 +1,4 @@
-"""Character commands cog — /character create|view|edit|delete|list."""
+"""Character commands cog — /character create|view|edit|delete|list|post."""
 
 from __future__ import annotations
 
@@ -283,6 +283,28 @@ class CharacterCog(commands.Cog):
 
         embed = build_character_embed(char)
         await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    # ------------------------------------------------------------------
+    # /character post [name]
+    # ------------------------------------------------------------------
+
+    @character_group.command(
+        name="post",
+        description="Post your character sheet publicly in this channel.",
+    )
+    @app_commands.describe(name="Character name (optional if you have an active)")
+    async def character_post(
+        self,
+        interaction: discord.Interaction,
+        name: str | None = None,
+    ) -> None:
+        """Post a character sheet as a public (non-ephemeral) embed."""
+        char = await self._resolve_or_reply(interaction, name)
+        if char is None:
+            return
+
+        embed = build_character_embed(char)
+        await interaction.response.send_message(embed=embed, ephemeral=False)
 
     # ------------------------------------------------------------------
     # /character edit [name] <field> <value>
