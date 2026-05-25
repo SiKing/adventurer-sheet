@@ -8,11 +8,10 @@ D&D 5e character sheet Discord bot built with Python 3.12 and discord.py. Postgr
 
 When analyzing this project, always read these files first:
 
-1. **`.github/IDEAS.md`** — All project ideas and future plans (3 phases)
-2. **`.github/PLAN-PHASE1.md`** — Phase 1 (Hello World pipeline) — ✅ completed
-3. **`.github/PLAN-PHASE2.md`** — Phase 2 (Character sheet CRUD) — ✅ completed
-4. **`.github/PLAN-PHASE3.md`** — Phase 3 (Additional features) — 🔲 in progress
-5. **`.github/ARCHITECTURE.md`** — ADR-001 through ADR-010: production-first design, DB decisions, cog structure, security, active character, git workflow, dependency review, backup storage
+1. **`.github/PLAN-PHASE1.md`** — Phase 1 (Hello World pipeline) — ✅ completed
+2. **`.github/PLAN-PHASE2.md`** — Phase 2 (Character sheet CRUD) — ✅ completed
+3. **`.github/PLAN-PHASE3.md`** — Phase 3 (Additional features) — 🔲 in progress
+4. **`.github/ARCHITECTURE.md`** — Founding decisions and ADR-001 through ADR-010
 
 ## Completed Work
 

@@ -4,6 +4,29 @@ Standing rules and principles that apply to all current and future development.
 
 ---
 
+## Founding Decisions
+
+Initial project decisions made at inception, updated to reflect current state.
+
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| **Project name** | `adventurer-sheet` | Descriptive, clean GitHub repo name |
+| **Language** | Python 3.12 (via pyenv) | Stable, great type hints |
+| **Bot framework** | discord.py | Mature, well-documented, async-native |
+| **Database** | PostgreSQL + SQLAlchemy ORM (async) | Proper concurrent access, ACID compliance; SQLAlchemy abstracts dialect |
+| **Async driver** | asyncpg | Required for non-blocking DB access on discord.py's event loop |
+| **HTTP client** | aiohttp | GitHub API calls for backup storage |
+| **Hosting (prod)** | Railway.app | Simple, deploy from GitHub, managed PostgreSQL |
+| **Hosting (dev)** | Local machine + Docker Compose | PostgreSQL via `docker compose up -d` |
+| **CI/CD** | GitHub Actions | Free for public repos, natural fit with GitHub |
+| **Python env** | pyenv + venv | Per-project Python version, no admin needed |
+| **Admin access** | Not available | All tooling chosen to work without admin/root |
+| **Discord server** | Existing test server | No setup needed |
+| **Scaling priority** | Low usage, simplicity first | No need for horizontal scaling |
+| **Backup storage** | GitHub Releases | Zero cost, zero new accounts (see ADR-010) |
+
+---
+
 ## ADR-001: Production-First Command Design
 
 **Date:** 2026-04-07
