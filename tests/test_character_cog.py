@@ -245,6 +245,67 @@ class TestCharacterView:
 
 
 # ---------------------------------------------------------------------------
+# /character post
+# ---------------------------------------------------------------------------
+
+
+class TestCharacterPost:
+    @pytest.mark.asyncio
+    async def test_post_sends_public_embed(self) -> None:
+        """Post sends an embed with ephemeral=False."""
+        repo = _make_repo()
+        repo.get_by_name.return_value = _make_character(name="Thorin")
+        cog = _make_cog(repo)
+        interaction = _make_interaction()
+
+        await cog.character_post.callback(cog, interaction, name="Thorin")
+
+        interaction.response.send_message.assert_awaited_once()
+        _, kwargs = interaction.response.send_message.call_args
+        assert isinstance(kwargs.get("embed"), discord.Embed)
+        assert kwargs.get("ephemeral") is False
+
+    @pytest.mark.asyncio
+    async def test_post_no_name_uses_active(self) -> None:
+        repo = _make_repo()
+        repo.get_by_name.return_value = _make_character(name="Thorin")
+        cog = _make_cog(repo)
+        interaction = _make_interaction()
+        user_id = str(interaction.user.id)
+        cog._active[user_id] = "Thorin"
+
+        await cog.character_post.callback(cog, interaction, name=None)
+
+        repo.get_by_name.assert_awaited_once_with(user_id, "Thorin")
+        _, kwargs = interaction.response.send_message.call_args
+        assert kwargs.get("ephemeral") is False
+
+    @pytest.mark.asyncio
+    async def test_post_no_name_no_active_replies_ephemeral(self) -> None:
+        cog = _make_cog()
+        interaction = _make_interaction()
+
+        await cog.character_post.callback(cog, interaction, name=None)
+
+        interaction.response.send_message.assert_awaited_once()
+        _, kwargs = interaction.response.send_message.call_args
+        assert kwargs.get("ephemeral") is True
+
+    @pytest.mark.asyncio
+    async def test_post_not_found_replies_ephemeral(self) -> None:
+        repo = _make_repo()
+        repo.get_by_name.side_effect = CharacterNotFoundError("not found")
+        cog = _make_cog(repo)
+        interaction = _make_interaction()
+
+        await cog.character_post.callback(cog, interaction, name="Nobody")
+
+        interaction.response.send_message.assert_awaited_once()
+        _, kwargs = interaction.response.send_message.call_args
+        assert kwargs.get("ephemeral") is True
+
+
+# ---------------------------------------------------------------------------
 # /character edit
 # ---------------------------------------------------------------------------
 
