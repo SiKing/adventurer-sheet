@@ -276,3 +276,32 @@ discord.py~=2.4
 flagged an import-sorting error that the local version silently accepted. The fix
 was to pin `ruff==0.15.9`. A dependency review at Phase 2 completion would have
 caught this proactively.
+
+---
+
+## ADR-010: Backup Storage — GitHub Releases
+
+**Date:** 2026-05-22
+
+**Decision:** Back up the production PostgreSQL database to GitHub Releases as
+gzipped SQL dumps. A `BackupStorage` Protocol allows swapping providers.
+
+**Rationale:** Zero cost, zero new accounts or infrastructure. Backups are
+stored as pre-release assets (tagged `backup/<timestamp>`) to avoid polluting
+the latest release. The database is small enough that GitHub's 2 GB asset limit
+is not a concern.
+
+**Architecture:**
+- `src/bot/backup/storage.py` — `BackupStorage` Protocol (upload, download, list_backups)
+- `src/bot/backup/github_storage.py` — `GitHubReleaseStorage` adapter using `aiohttp`
+- `src/bot/backup/service.py` — `create_backup()` runs `pg_dump` → gzip
+- `scripts/backup.py` — CLI entry point
+- `.github/workflows/backup.yml` — Monthly cron (`0 3 1 * *`) + manual dispatch
+
+**Restore:** Manual process — download asset from GitHub Release, `gunzip`,
+`psql < backup.sql`.
+
+**Alternatives rejected:**
+- AWS S3 — requires new account setup
+- Cloudflare R2 — requires new account setup
+- Backblaze B2 — requires new account setup
