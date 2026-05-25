@@ -23,7 +23,7 @@ Tasks are ordered by dependency — #10 must complete before #11.
 |-------|-------|--------|------------|--------|
 | [#10](https://github.com/SiKing/adventurer-sheet/issues/10) | Persistent storage (SQLite → PostgreSQL) | `feat/persistent-storage` | — | ✅ Complete |
 | [#11](https://github.com/SiKing/adventurer-sheet/issues/11) | Backup storage | `feat/backup-storage` | #10 | 🔄 In progress |
-| [#12](https://github.com/SiKing/adventurer-sheet/issues/12) | Modify stats (incremental edits) | `feat/modify-stats` | — | 🔲 Not started |
+| [#12](https://github.com/SiKing/adventurer-sheet/issues/12) | Modify stats (incremental edits) | `feat/modify-stats` | — | ✅ Complete |
 | [#13](https://github.com/SiKing/adventurer-sheet/issues/13) | Post character to chat | `feat/post-character` | — | 🔲 Not started |
 | [#14](https://github.com/SiKing/adventurer-sheet/issues/14) | Combat Scores | `feat/combat-scores` | — | 🔲 Not started |
 

@@ -179,6 +179,48 @@ def validate_field_value(field: str, value: str) -> str | int:
     return value
 
 
+def parse_edit_value(raw: str, current: int) -> int:
+    """Parse an edit value string with optional +/- /= prefix.
+
+    Supported formats:
+        "+N"  — add N to current
+        "-N"  — subtract N from current
+        "=N"  — set to N (explicit absolute)
+        "N"   — set to N (bare number, existing behaviour)
+
+    Returns the new integer value.
+
+    Raises:
+        InvalidValueError: if the numeric part is not a valid integer.
+    """
+    raw = raw.strip()
+
+    if raw.startswith("=") or raw.startswith("+"):
+        numeric_part = raw[1:]
+    elif raw.startswith("-"):
+        # Could be negative literal or subtraction — handled below
+        numeric_part = raw  # keep the full string; int("-3") works
+    else:
+        numeric_part = raw
+
+    try:
+        parsed = int(numeric_part)
+    except (ValueError, TypeError) as exc:
+        raise InvalidValueError(
+            f"Expected an integer value, got '{raw}'."
+        ) from exc
+
+    if raw.startswith("+"):
+        return current + parsed
+    elif raw.startswith("-"):
+        # parsed is already negative (e.g. int("-3") == -3)
+        return current + parsed
+    elif raw.startswith("="):
+        return parsed
+    else:
+        return parsed
+
+
 # ---------------------------------------------------------------------------
 # Display / default helpers
 # ---------------------------------------------------------------------------
