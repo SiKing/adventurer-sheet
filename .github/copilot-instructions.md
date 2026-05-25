@@ -12,7 +12,7 @@ When analyzing this project, always read these files first:
 2. **`.github/PLAN-PHASE1.md`** — Phase 1 (Hello World pipeline) — ✅ completed
 3. **`.github/PLAN-PHASE2.md`** — Phase 2 (Character sheet CRUD) — ✅ completed
 4. **`.github/PLAN-PHASE3.md`** — Phase 3 (Additional features) — 🔲 in progress
-5. **`.github/ARCHITECTURE.md`** — ADR-001 through ADR-009: production-first design, DB decisions, cog structure, security, active character, git workflow, dependency review
+5. **`.github/ARCHITECTURE.md`** — ADR-001 through ADR-010: production-first design, DB decisions, cog structure, security, active character, git workflow, dependency review, backup storage
 
 ## Completed Work
 
@@ -24,7 +24,7 @@ When analyzing this project, always read these files first:
 | Issue | Title | Status |
 |-------|-------|--------|
 | [#10](https://github.com/SiKing/adventurer-sheet/issues/10) | Persistent storage (SQLite → PostgreSQL) | ✅ Complete |
-| [#11](https://github.com/SiKing/adventurer-sheet/issues/11) | Backup storage | 🔲 Not started (depends on #10) |
+| [#11](https://github.com/SiKing/adventurer-sheet/issues/11) | Backup storage | ✅ Complete |
 | [#12](https://github.com/SiKing/adventurer-sheet/issues/12) | Modify stats (incremental edits) | 🔲 Not started |
 | [#13](https://github.com/SiKing/adventurer-sheet/issues/13) | Post character to chat | 🔲 Not started |
 | [#14](https://github.com/SiKing/adventurer-sheet/issues/14) | Combat Scores | 🔲 Not started |
@@ -39,7 +39,7 @@ When analyzing this project, always read these files first:
 
 ## Tech Stack
 
-- Python 3.12, discord.py ~2.4, SQLAlchemy ~2.0 (async), asyncpg ~0.30
+- Python 3.12, discord.py ~2.4, SQLAlchemy ~2.0 (async), asyncpg ~0.30, aiohttp ~3.13
 - pytest + pytest-asyncio + pytest-cov (80%+ coverage required)
 - ruff for linting
 - Docker → Railway (worker process)
@@ -57,6 +57,8 @@ src/bot/             — Bot source code
   embeds.py          — Discord embed builders
   errors.py          — Custom exceptions
   cogs/character.py  — All /character commands
+  backup/            — Backup storage (Protocol + GitHub Releases adapter)
+scripts/             — CLI utilities (backup.py, restore.py)
 tests/               — pytest test suite
 .github/             — Plans, architecture, CI workflows
 ```
