@@ -144,7 +144,7 @@ adventurer-sheet/
 ├── .env                  # Secret bot token (NEVER committed)
 ├── .env.example          # Template showing required env vars
 ├── .github/
-│   ├── IDEAS.md          # Project vision and decisions
+│   ├── ARCHITECTURE.md   # Project decisions and ADRs
 │   ├── PLAN-PHASE1.md    # This file
 │   └── workflows/
 │       └── ci.yml        # GitHub Actions pipeline
